@@ -1,0 +1,13 @@
+Teste pelo Swagger:
+
+dotnet tool install --global dotnet-ef
+dotnet ef database update
+dotnet run
+
+*Caso haja problema vinculado a migrations:
+
+dotnet ef migrations add AtualizandoSnapshot
+dotnet ef database update
+dotnet run
+
+Isso vai gerar uma migration nova que sincroniza o snapshot com o modelo atual, e aí o banco vai ser atualizado sem erro.
