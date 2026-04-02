@@ -48,6 +48,14 @@ namespace Extrato_API.Controllers
 
             // 3. Adicionar e Salvar no banco de dados da Neon!
             _context.Usuarios.Add(novoUsuario);
+
+            // 4. Criar estatísticas iniciais zeradas para o novo usuário
+            var estatisticas = new Models.EstatisticasUsuario
+            {
+                UsuarioId = novoUsuario.Id
+            };
+            _context.EstatisticasUsuarios.Add(estatisticas);
+
             _context.SaveChanges();
 
             return Ok(new
