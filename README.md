@@ -64,5 +64,5 @@ Backend do aplicativo gamificado de educação financeira para crianças a parti
         </sub>
       </a>
     </td>
-  </tr>
+  </tr> 
 </table>
