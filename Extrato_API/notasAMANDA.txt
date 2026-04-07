@@ -1,0 +1,26 @@
+Teste pelo Swagger:
+
+dotnet tool install --global dotnet-ef
+dotnet ef database update
+dotnet run
+
+*Caso o comando dotnet-ef nao seja reconhecido:
+$env:Path += ";$env:USERPROFILE.dotnet\tools"
+dotnet ef database update
+
+*Caso o erro de comando persista (instalacao local):
+dotnet new tool-manifest
+dotnet tool install dotnet-ef
+dotnet tool run dotnet-ef database update
+
+*Caso haja problema vinculado a migrations:
+dotnet ef migrations add AtualizandoSnapshot
+dotnet ef database update
+dotnet run
+
+Isso vai gerar uma migration nova que sincroniza o snapshot com o modelo atual, e ai o banco vai ser atualizado sem erro.
+
+*Erro de conexao (Failed to connect / Firewall):
+Se estiver na rede da faculdade ou empresa, o firewall pode bloquear a porta 5432 do banco.
+Solucao: Use o roteador do celular (4G/5G) apenas para rodar o comando database update.
+Verifique tambem se o IP no appsettings.json esta correto para o ambiente atual. 
