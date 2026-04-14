@@ -58,7 +58,7 @@ namespace Extrato_API.Controllers
                 Sucesso = true,
                 Mensagem = "Perfil atualizado com sucesso.",
                 NomeUsuario = usuario.NomeUsuario,
-                AvatarId = usuario.AvatarId
+                //AvatarId = usuario.AvatarId
             });
         }
     }
