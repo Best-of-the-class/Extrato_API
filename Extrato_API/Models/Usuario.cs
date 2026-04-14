@@ -17,6 +17,6 @@
         public DateTime? CodigoResetExpiracao { get; set; }
 
         //Avatar
-        public int? AvatarId { get; set; }
+        //public int? AvatarId { get; set; }
     }
 }

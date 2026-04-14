@@ -41,7 +41,7 @@ namespace Extrato_API.Controllers
         }
 
         //Alterar avatar
-        [HttpPut("avatar")]
+        /*[HttpPut("avatar")]
         public IActionResult AlterarAvatar([FromBody] AlterarAvatarDTO dto)
         {
             var usuario = _context.Usuarios.FirstOrDefault(u => u.Email == dto.Email);
@@ -53,6 +53,6 @@ namespace Extrato_API.Controllers
             _context.SaveChanges();
 
             return Ok(new { Sucesso = true, Mensagem = "Avatar atualizado com sucesso.", AvatarId = usuario.AvatarId });
-        }
+        }*/
     }
 }

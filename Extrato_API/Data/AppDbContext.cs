@@ -1,16 +1,31 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Extrato_API.Models; // Importa a sua pasta Models
+using Microsoft.EntityFrameworkCore;
+using Extrato_API.Models;
 
-namespace Extrato_API.Data // Se criar na raiz, pode ser só namespace Extrato_API
+namespace Extrato_API.Data
 {
     public class AppDbContext : DbContext
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
-        // Esta linha é a mágica: ela diz que a sua classe Usuario vai virar uma tabela chamada "Usuarios"
         public DbSet<Usuario> Usuarios { get; set; }
-
-        // Tabela de estatísticas do perfil do usuário
         public DbSet<EstatisticasUsuario> EstatisticasUsuarios { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Usuario>(entity =>
+            {
+                entity.ToTable("tb_usuario");
+                entity.Property(e => e.Id).HasColumnName("id_usuario");
+                entity.Property(e => e.NomeUsuario).HasColumnName("nome");
+                entity.Property(e => e.Email).HasColumnName("email");
+                entity.Property(e => e.SenhaHash).HasColumnName("senha");
+                entity.Property(e => e.DataCadastro).HasColumnName("criado_em");
+                entity.Ignore(e => e.CodigoResetSenha);
+                entity.Ignore(e => e.CodigoResetExpiracao);
+                //entity.Ignore(e => e.AvatarId);
+            });
+
+            base.OnModelCreating(modelBuilder);
+        }
     }
 }
