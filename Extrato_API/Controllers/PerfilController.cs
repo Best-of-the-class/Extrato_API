@@ -14,8 +14,7 @@ namespace Extrato_API.Controllers
         {
             _context = context;
         }
-
-        // Buscar perfil completo: header (nome, email, avatar) + stats
+        
         [HttpGet]
         public IActionResult ObterPerfil([FromQuery] string email)
         {
@@ -31,7 +30,7 @@ namespace Extrato_API.Controllers
                 Sucesso = true,
                 NomeUsuario = usuario.NomeUsuario,
                 Email = usuario.Email,
-                AvatarId = usuario.AvatarId,
+                //AvatarId = usuario.AvatarId,
                 LicoesConcluidas = stats?.LicoesConcluidas ?? 0,
                 ExerciciosResolvidos = stats?.ExerciciosResolvidos ?? 0,
                 Pontuacao = stats?.Pontuacao ?? 0,
@@ -39,7 +38,6 @@ namespace Extrato_API.Controllers
             });
         }
 
-        // Salvar todas as alterações do perfil (ação "Editar Perfil")
         [HttpPut("editar")]
         public IActionResult EditarPerfil([FromBody] EditarPerfilDTO dto)
         {
@@ -50,8 +48,8 @@ namespace Extrato_API.Controllers
 
             usuario.NomeUsuario = dto.NovoNome;
 
-            if (dto.AvatarId.HasValue)
-                usuario.AvatarId = dto.AvatarId;
+            /*if (dto.AvatarId.HasValue)
+                usuario.AvatarId = dto.AvatarId;*/
 
             _context.SaveChanges();
 
