@@ -22,7 +22,7 @@ namespace Extrato_API.Data
                 entity.Property(e => e.DataCadastro).HasColumnName("criado_em");
                 entity.Ignore(e => e.CodigoResetSenha);
                 entity.Ignore(e => e.CodigoResetExpiracao);
-                entity.Ignore(e => e.AvatarId);
+                //entity.Ignore(e => e.AvatarId);
             });
 
             base.OnModelCreating(modelBuilder);
