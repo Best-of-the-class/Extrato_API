@@ -14,7 +14,7 @@ namespace Extrato_API.Data
         {
             modelBuilder.Entity<Usuario>(entity =>
             {
-                entity.ToTable("tb_usuário");
+                entity.ToTable("tb_usuario");
                 entity.Property(e => e.Id).HasColumnName("id_usuario");
                 entity.Property(e => e.NomeUsuario).HasColumnName("nome");
                 entity.Property(e => e.Email).HasColumnName("email");
