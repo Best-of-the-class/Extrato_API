@@ -41,6 +41,8 @@ namespace Extrato_API.Controllers
                 NomeUsuario = dto.NomeUsuario,
                 Email = dto.Email,
 
+                TipoUsuario = "estudante",
+
                 // ATENÇÃO: Salvando direto para o teste de hoje.
                 // Amanhã nós colocamos a criptografia (Hash) aqui!
                 SenhaHash = dto.Senha
@@ -70,18 +72,27 @@ namespace Extrato_API.Controllers
         [HttpPost("login")]
         public IActionResult Login([FromBody] LoginUsuarioDTO dto)
         {
-            // O Login continua como mockup, faremos a leitura do banco na próxima etapa!
-            if (dto.Email == "teste@admin.com" && dto.Senha == "senha12345")
+
+            var usuario = _context.Usuarios.FirstOrDefault(u => u.Email == dto.Email);
+
+            if (usuario == null)
             {
-                return Ok(new
-                {
-                    Sucesso = true,
-                    Mensagem = "Bem-vindo de volta!",
-                    Token = "token_falso_para_teste_123456789"
-                });
+                return Unauthorized(new { Sucesso = false, Mensagem = "Email ou senha incorretos." });
             }
 
-            return Unauthorized(new { Sucesso = false, Mensagem = "Email ou senha incorretos." });
+            if (usuario.SenhaHash != dto.Senha)
+            {
+                return Unauthorized(new { Sucesso = false, Mensagem = "Email ou senha incorretos." });
+            }
+
+            return Ok(new
+            {
+                Sucesso = true,
+                Mensagem = "Bem-vindo de volta!",
+                Nome = usuario.NomeUsuario,
+                Tipo = usuario.TipoUsuario,
+                Token = "token_jwt_real_na_proxima_fase"
+            });
         }
         //Recuperação de senha
         //recebe o e-mail e envia o código
