@@ -9,6 +9,11 @@ namespace Extrato_API.Data
 
         public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<EstatisticasUsuario> EstatisticasUsuarios { get; set; }
+        public DbSet<Modulo> Modulos { get; set; }
+        public DbSet<Licao> Licoes { get; set; }
+        public DbSet<Atividade> Atividades { get; set; }
+        public DbSet<Alternativa> Alternativas { get; set; }
+        public DbSet<Tentativa> Tentativas { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
