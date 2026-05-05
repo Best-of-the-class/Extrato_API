@@ -1,4 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Mvc;
 using Extrato_API.DTOs;
 using Extrato_API.Models;
 using Extrato_API.Data;
@@ -23,7 +27,6 @@ namespace Extrato_API.Controllers
         [HttpPost("cadastro")]
         public IActionResult Cadastrar([FromBody] CadastroUsuarioDTO dto)
         {
-            // 1. Verificar se o e-mail já está cadastrado no banco
             bool emailJaExiste = _context.Usuarios.Any(u => u.Email == dto.Email);
 
             if (emailJaExiste)
@@ -35,7 +38,6 @@ namespace Extrato_API.Controllers
                 });
             }
 
-            // 2. Criar o objeto Usuario para salvar
             var novoUsuario = new Usuario
             {
                 NomeUsuario = dto.NomeUsuario,
@@ -43,15 +45,11 @@ namespace Extrato_API.Controllers
 
                 TipoUsuario = "estudante",
 
-                // ATENÇÃO: Salvando direto para o teste de hoje.
-                // Amanhã nós colocamos a criptografia (Hash) aqui!
                 SenhaHash = dto.Senha
             };
 
-            // 3. Adicionar e Salvar no banco de dados da Neon!
             _context.Usuarios.Add(novoUsuario);
 
-            // 4. Criar estatísticas iniciais zeradas para o novo usuário
             var estatisticas = new Models.EstatisticasUsuario
             {
                 UsuarioId = novoUsuario.Id
@@ -72,17 +70,16 @@ namespace Extrato_API.Controllers
         [HttpPost("login")]
         public IActionResult Login([FromBody] LoginUsuarioDTO dto)
         {
-
             var usuario = _context.Usuarios.FirstOrDefault(u => u.Email == dto.Email);
 
-            if (usuario == null)
+            if (usuario == null || usuario.SenhaHash != dto.Senha)
             {
                 return Unauthorized(new { Sucesso = false, Mensagem = "Email ou senha incorretos." });
             }
 
-            if (usuario.SenhaHash != dto.Senha)
+            if (usuario.TipoUsuario.ToLower() == "admin")
             {
-                return Unauthorized(new { Sucesso = false, Mensagem = "Email ou senha incorretos." });
+                return Unauthorized(new { Sucesso = false, Mensagem = "Administradores devem acessar via painel web." });
             }
 
             return Ok(new
@@ -91,9 +88,35 @@ namespace Extrato_API.Controllers
                 Mensagem = "Bem-vindo de volta!",
                 Nome = usuario.NomeUsuario,
                 Tipo = usuario.TipoUsuario,
-                Token = "token_jwt_real_na_proxima_fase"
+                Token = GerarTokenJwt(usuario)
             });
         }
+
+        [HttpPost("login-admin")]
+        public IActionResult LoginAdmin([FromBody] LoginUsuarioDTO dto)
+        {
+            var usuario = _context.Usuarios.FirstOrDefault(u => u.Email == dto.Email);
+
+            if (usuario == null || usuario.SenhaHash != dto.Senha)
+            {
+                return Unauthorized(new { Sucesso = false, Mensagem = "Credenciais inválidas." });
+            }
+
+            if (usuario.TipoUsuario.ToLower() != "admin")
+            {
+                return StatusCode(403, new { Sucesso = false, Mensagem = "Acesso negado. Área exclusiva para administradores." });
+            }
+
+            return Ok(new
+            {
+                Sucesso = true,
+                Mensagem = "Bem-vindo ao Painel Administrativo!",
+                Nome = usuario.NomeUsuario,
+                Tipo = usuario.TipoUsuario,
+                Token = GerarTokenJwt(usuario)
+            });
+        }
+
         //Recuperação de senha
         //recebe o e-mail e envia o código
         [HttpPost("recuperar-senha")]
@@ -200,5 +223,36 @@ namespace Extrato_API.Controllers
             mensagem.To.Add(destinatario);
             smtpClient.Send(mensagem);
         }
+
+        private string GerarTokenJwt(Usuario usuario)
+        {
+            var jwtSettings = _configuration.GetSection("Jwt");
+            var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]!);
+
+            var claims = new[]
+            {
+        new Claim(JwtRegisteredClaimNames.Sub, usuario.Id.ToString()),
+        new Claim(JwtRegisteredClaimNames.Email, usuario.Email),
+        new Claim("nome", usuario.NomeUsuario),
+        new Claim(ClaimTypes.Role, usuario.TipoUsuario)
+    };
+
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(claims),
+                Expires = DateTime.UtcNow.AddHours(8),
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
+                Issuer = jwtSettings["Issuer"],
+                Audience = jwtSettings["Audience"]
+            };
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+
+            return tokenHandler.WriteToken(token);
         }
+
+    }
+
+
 }
