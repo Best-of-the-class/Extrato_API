@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Extrato_API.Data;
 using Extrato_API.Models;
 using Extrato_API.DTOs;
+using System;
 using System.Linq;
 
 namespace Extrato_API.Controllers
@@ -133,21 +134,128 @@ namespace Extrato_API.Controllers
 
                 questoesFormatadas.Add(new
                 {
+                    atividadeId = atividade.Id,
                     enunciado = atividade.Enunciado,
                     indiceCorreta = indCorreta,
-                    alternativas = alternativasOrdenadas.Select(alt => alt.Texto).ToList()
+                    alternativas = alternativasOrdenadas.Select(alt => alt.Texto).ToList(),
+                    alternativasIds = alternativasOrdenadas.Select(alt => alt.Id).ToList()
                 });
             }
 
             var result = new
             {
-                dificuldade = licao.Modulo.Nivel,
+                licaoId = licao.Id,
+                dificuldade = licao.Modulo?.Nivel ?? 0,
                 tituloLicao = licao.Titulo,
-                textoConceito = licao.TextoConceito,
+                textoConceito = licao.TextoConceito ?? string.Empty,
                 questoes = questoesFormatadas
             };
 
             return Ok(result);
+        }
+
+        [HttpPost("concluir")]
+        public IActionResult ConcluirLicao([FromBody] ConcluirLicaoDTO dto)
+        {
+            var licao = _context.Licoes
+                .Include(l => l.Atividades)
+                    .ThenInclude(a => a.Alternativas)
+                .FirstOrDefault(l => l.Id == dto.LicaoId);
+
+            if (licao == null)
+                return NotFound(new { Mensagem = "Lição não encontrada." });
+
+            int acertos = 0;
+            int erros = 0;
+            int xpTotal = 0;
+
+            int totalAtividades = licao.Atividades?.Count ?? 0;
+            int xpPorAcerto = 100;
+            if (licao.RecompensaXp > 0 && totalAtividades > 0)
+            {
+                xpPorAcerto = Math.Max(1, licao.RecompensaXp / totalAtividades);
+            }
+
+            foreach (var resposta in dto.Respostas)
+            {
+                var atividade = licao.Atividades.FirstOrDefault(a => a.Id == resposta.AtividadeId);
+                if (atividade == null)
+                {
+                    erros++;
+                    var tentativaErrada = new Tentativa
+                    {
+                        EstudanteId = dto.EstudanteId,
+                        AtividadeId = resposta.AtividadeId,
+                        AlternativaEscolhidaId = resposta.AlternativaEscolhidaId,
+                        Correta = false,
+                        XpGanho = 0,
+                        TentadoEm = DateTime.UtcNow
+                    };
+                    _context.Tentativas.Add(tentativaErrada);
+                    continue;
+                }
+
+                var alternativaEscolhida = atividade.Alternativas.FirstOrDefault(a => a.Id == resposta.AlternativaEscolhidaId);
+                bool correta = alternativaEscolhida != null && alternativaEscolhida.Correta == true;
+
+                if (correta) acertos++; else erros++;
+
+                int xpGanho = correta ? xpPorAcerto : 0;
+                xpTotal += xpGanho;
+
+                var tentativa = new Tentativa
+                {
+                    EstudanteId = dto.EstudanteId,
+                    AtividadeId = atividade.Id,
+                    AlternativaEscolhidaId = resposta.AlternativaEscolhidaId,
+                    Correta = correta,
+                    XpGanho = xpGanho,
+                    TentadoEm = DateTime.UtcNow
+                };
+
+                _context.Tentativas.Add(tentativa);
+            }
+
+            var stats = _context.EstatisticasUsuarios.FirstOrDefault(s => s.UsuarioId == dto.EstudanteId);
+            if (stats == null)
+            {
+                stats = new EstatisticasUsuario { UsuarioId = dto.EstudanteId };
+                _context.EstatisticasUsuarios.Add(stats);
+            }
+
+            stats.ExerciciosResolvidos += (acertos + erros);
+            stats.Pontuacao += xpTotal;
+
+            bool jaConcluiu = _context.LicaoConcluidas.Any(lc => lc.UsuarioId == dto.EstudanteId && lc.LicaoId == licao.Id);
+            bool ganhouSequencia = false;
+            if (!jaConcluiu)
+            {
+                var registro = new LicaoConcluida
+                {
+                    UsuarioId = dto.EstudanteId,
+                    LicaoId = licao.Id,
+                    ConcluidoEm = DateTime.UtcNow
+                };
+                _context.LicaoConcluidas.Add(registro);
+
+                stats.LicoesConcluidas += 1;
+
+                if (erros == 0 && (acertos + erros) > 0)
+                {
+                    stats.SequenciaDias += 1;
+                    ganhouSequencia = true;
+                }
+            }
+
+            _context.SaveChanges();
+
+            return Ok(new
+            {
+                acertos,
+                erros,
+                xp = xpTotal,
+                ganhouSequencia
+            });
         }
 
         [HttpPut("editar/{tituloAntigo}")]
