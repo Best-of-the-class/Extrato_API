@@ -98,7 +98,10 @@ namespace Extrato_API.Controllers
         [HttpDelete("deletar/{titulo}")]
         public IActionResult DeletarAula(string titulo)
         {
-            var licao = _context.Licoes.FirstOrDefault(l => l.Titulo == titulo);
+            var licao = _context.Licoes
+                .Include(l => l.Atividades)
+                    .ThenInclude(a => a.Alternativas)
+                .FirstOrDefault(l => l.Titulo == titulo);
 
             if (licao == null)
             {
