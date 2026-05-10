@@ -72,15 +72,16 @@ namespace Extrato_API.Controllers
         {
             var usuario = _context.Usuarios.FirstOrDefault(u => u.Email == dto.Email);
 
-            if (usuario == null || usuario.SenhaHash != dto.Senha)
-            {
+            if (usuario == null)
                 return Unauthorized(new { Sucesso = false, Mensagem = "Email ou senha incorretos." });
-            }
+
+            var senhaValida = BCrypt.Net.BCrypt.Verify(dto.Senha + "poupas_pepper_secret", usuario.SenhaHash);
+
+            if (!senhaValida)
+                return Unauthorized(new { Sucesso = false, Mensagem = "Email ou senha incorretos." });
 
             if (usuario.TipoUsuario.ToLower() == "admin")
-            {
                 return Unauthorized(new { Sucesso = false, Mensagem = "Administradores devem acessar via painel web." });
-            }
 
             return Ok(new
             {
