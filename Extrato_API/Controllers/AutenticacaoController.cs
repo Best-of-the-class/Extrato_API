@@ -38,24 +38,27 @@ namespace Extrato_API.Controllers
                 });
             }
 
+            string senhaComPepper = dto.Senha + "poupas_pepper_secret";
+            string senhaHasheada = BCrypt.Net.BCrypt.HashPassword(senhaComPepper);
+
             var novoUsuario = new Usuario
             {
                 NomeUsuario = dto.NomeUsuario,
                 Email = dto.Email,
-
                 TipoUsuario = "estudante",
-
-                SenhaHash = dto.Senha
+                SenhaHash = senhaHasheada
             };
 
             _context.Usuarios.Add(novoUsuario);
+            _context.SaveChanges();
 
-            var estatisticas = new Models.EstatisticasUsuario
+            var estatisticas = new Models.Estudante
             {
-                UsuarioId = novoUsuario.Id
+                UsuarioId = novoUsuario.Id,
+                AvatarId = 1
             };
-            _context.EstatisticasUsuarios.Add(estatisticas);
 
+            _context.Estudante.Add(estatisticas);
             _context.SaveChanges();
 
             return Ok(new
