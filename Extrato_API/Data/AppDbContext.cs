@@ -14,6 +14,7 @@ namespace Extrato_API.Data
         public DbSet<Atividade> Atividades { get; set; }
         public DbSet<Alternativa> Alternativas { get; set; }
         public DbSet<Tentativa> Tentativas { get; set; }
+        public DbSet<LicaoConcluida> LicaoConcluidas { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

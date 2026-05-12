@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 using Extrato_API.DTOs;
 using Extrato_API.Data;
 
@@ -6,6 +8,7 @@ namespace Extrato_API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class PerfilController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -16,9 +19,15 @@ namespace Extrato_API.Controllers
         }
         
         [HttpGet]
-        public IActionResult ObterPerfil([FromQuery] string email)
+        public IActionResult ObterPerfil()
         {
-            var usuario = _context.Usuarios.FirstOrDefault(u => u.Email == email);
+            var sub = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value
+                      ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(sub) || !Guid.TryParse(sub, out var usuarioId))
+                return Unauthorized(new { Sucesso = false, Mensagem = "Usuário não autenticado." });
+
+            var usuario = _context.Usuarios.FirstOrDefault(u => u.Id == usuarioId);
 
             if (usuario == null)
                 return NotFound(new { Sucesso = false, Mensagem = "Usuário não encontrado." });
