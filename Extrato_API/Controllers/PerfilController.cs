@@ -17,7 +17,7 @@ namespace Extrato_API.Controllers
         {
             _context = context;
         }
-        
+
         [HttpGet]
         public IActionResult ObterPerfil()
         {
@@ -32,7 +32,7 @@ namespace Extrato_API.Controllers
             if (usuario == null)
                 return NotFound(new { Sucesso = false, Mensagem = "Usuário não encontrado." });
 
-            var stats = _context.EstatisticasUsuarios.FirstOrDefault(e => e.UsuarioId == usuario.Id);
+            var stats = _context.Estudante.FirstOrDefault(e => e.UsuarioId == usuario.Id);
 
             return Ok(new
             {
@@ -42,7 +42,7 @@ namespace Extrato_API.Controllers
                 //AvatarId = usuario.AvatarId,
                 LicoesConcluidas = stats?.LicoesConcluidas ?? 0,
                 ExerciciosResolvidos = stats?.ExerciciosResolvidos ?? 0,
-                Pontuacao = stats?.Pontuacao ?? 0,
+                Pontuacao = stats?.XpTotal ?? 0,
                 SequenciaDias = stats?.SequenciaDias ?? 0
             });
         }
