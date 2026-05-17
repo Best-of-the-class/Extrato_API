@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 using Extrato_API.DTOs;
 using Extrato_API.Data;
 
@@ -21,7 +22,7 @@ namespace Extrato_API.Controllers
         [HttpGet]
         public IActionResult ObterPerfil()
         {
-            var sub = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value
+            var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
                       ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             if (string.IsNullOrEmpty(sub) || !Guid.TryParse(sub, out var usuarioId))
@@ -32,33 +33,44 @@ namespace Extrato_API.Controllers
             if (usuario == null)
                 return NotFound(new { Sucesso = false, Mensagem = "Usuário não encontrado." });
 
-            var stats = _context.Estudante.FirstOrDefault(e => e.UsuarioId == usuario.Id);
+            var estudante = _context.Estudante.FirstOrDefault(e => e.UsuarioId == usuarioId);
 
             return Ok(new
             {
                 Sucesso = true,
                 NomeUsuario = usuario.NomeUsuario,
                 Email = usuario.Email,
-                //AvatarId = usuario.AvatarId,
-                LicoesConcluidas = stats?.LicoesConcluidas ?? 0,
-                ExerciciosResolvidos = stats?.ExerciciosResolvidos ?? 0,
-                Pontuacao = stats?.XpTotal ?? 0,
-                SequenciaDias = stats?.SequenciaDias ?? 0
+                AvatarId = estudante?.AvatarId,
+                LicoesConcluidas = estudante?.LicoesConcluidas ?? 0,
+                ExerciciosResolvidos = estudante?.ExerciciosResolvidos ?? 0,
+                Pontuacao = estudante?.XpTotal ?? 0,
+                SequenciaDias = estudante?.SequenciaDias ?? 0,
+                QuantVidas = estudante?.QuantVidas ?? 5
             });
         }
 
         [HttpPut("editar")]
         public IActionResult EditarPerfil([FromBody] EditarPerfilDTO dto)
         {
-            var usuario = _context.Usuarios.FirstOrDefault(u => u.Email == dto.Email);
+            var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                      ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(sub) || !Guid.TryParse(sub, out var usuarioId))
+                return Unauthorized(new { Sucesso = false, Mensagem = "Usuário não autenticado." });
+
+            var usuario = _context.Usuarios.FirstOrDefault(u => u.Id == usuarioId);
 
             if (usuario == null)
                 return NotFound(new { Sucesso = false, Mensagem = "Usuário não encontrado." });
 
             usuario.NomeUsuario = dto.NovoNome;
 
-            /*if (dto.AvatarId.HasValue)
-                usuario.AvatarId = dto.AvatarId;*/
+            if (dto.AvatarId.HasValue)
+            {
+                var estudante = _context.Estudante.FirstOrDefault(e => e.UsuarioId == usuarioId);
+                if (estudante != null)
+                    estudante.AvatarId = dto.AvatarId.Value;
+            }
 
             _context.SaveChanges();
 
@@ -66,8 +78,7 @@ namespace Extrato_API.Controllers
             {
                 Sucesso = true,
                 Mensagem = "Perfil atualizado com sucesso.",
-                NomeUsuario = usuario.NomeUsuario,
-                //AvatarId = usuario.AvatarId
+                NomeUsuario = usuario.NomeUsuario
             });
         }
     }

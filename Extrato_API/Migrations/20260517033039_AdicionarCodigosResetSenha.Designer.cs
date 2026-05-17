@@ -3,6 +3,7 @@ using System;
 using Extrato_API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Extrato_API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260517033039_AdicionarCodigosResetSenha")]
+    partial class AdicionarCodigosResetSenha
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -250,34 +253,6 @@ namespace Extrato_API.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("tb_modulo");
-                });
-
-            modelBuilder.Entity("Extrato_API.Models.ResetSenha", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Codigo")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("codigo");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("email");
-
-                    b.Property<DateTime>("Expiracao")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("expiracao");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("tb_reset_senha");
                 });
 
             modelBuilder.Entity("Extrato_API.Models.Tentativa", b =>
