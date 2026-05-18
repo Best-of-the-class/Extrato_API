@@ -69,7 +69,15 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// Banco de dados 
+var connectionString =
+    builder.Configuration.GetConnectionString("DefaultConnection") ??
+    builder.Configuration.GetConnectionString("PostgresConnection");
+
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException("Nenhuma connection string configurada. Use 'DefaultConnection' ou 'PostgresConnection'.");
+}
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("PostgresConnection")));
 

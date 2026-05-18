@@ -8,6 +8,8 @@ namespace Extrato_API.Data
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
         public DbSet<Usuario> Usuarios { get; set; }
+        public DbSet<EstatisticasUsuario> EstatisticasUsuarios { get; set; }
+
         public DbSet<Estudante> Estudante { get; set; }
         public DbSet<Avatar> Avatares { get; set; }
         public DbSet<Modulo> Modulos { get; set; }

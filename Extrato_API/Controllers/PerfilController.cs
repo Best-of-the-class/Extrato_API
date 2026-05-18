@@ -4,6 +4,7 @@ using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 using Extrato_API.DTOs;
 using Extrato_API.Data;
+using Extrato_API.Models;
 
 namespace Extrato_API.Controllers
 {
@@ -63,7 +64,17 @@ namespace Extrato_API.Controllers
             if (usuario == null)
                 return NotFound(new { Sucesso = false, Mensagem = "Usuário não encontrado." });
 
-            usuario.NomeUsuario = dto.NovoNome;
+            bool emailJaExiste = _context.Usuarios.Any(u =>
+                u.Id != usuario.Id && u.Email.ToLower() == novoEmailNormalizado);
+
+            if (emailJaExiste)
+            {
+                return Conflict(new
+                {
+                    Sucesso = false,
+                    Mensagem = "Este e-mail já está em uso por outro usuário."
+                });
+            }
 
             if (dto.AvatarId.HasValue)
             {
@@ -74,12 +85,27 @@ namespace Extrato_API.Controllers
 
             _context.SaveChanges();
 
-            return Ok(new
+            var stats = _context.EstatisticasUsuarios.FirstOrDefault(e => e.UsuarioId == usuario.Id);
+
+            return Ok(CriarRespostaPerfil(
+                usuario,
+                stats,
+                "Perfil atualizado com sucesso."));
+        }
+
+        private static object CriarRespostaPerfil(Usuario usuario, EstatisticasUsuario? stats, string? mensagem = null)
+        {
+            return new
             {
                 Sucesso = true,
-                Mensagem = "Perfil atualizado com sucesso.",
-                NomeUsuario = usuario.NomeUsuario
-            });
+                Mensagem = mensagem,
+                NomeUsuario = usuario.NomeUsuario,
+                Email = usuario.Email,
+                LicoesConcluidas = stats?.LicoesConcluidas ?? 0,
+                ExerciciosResolvidos = stats?.ExerciciosResolvidos ?? 0,
+                Pontuacao = stats?.Pontuacao ?? 0,
+                SequenciaDias = stats?.SequenciaDias ?? 0
+            };
         }
     }
 }

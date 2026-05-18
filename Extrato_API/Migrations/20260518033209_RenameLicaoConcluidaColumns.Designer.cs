@@ -3,6 +3,7 @@ using System;
 using Extrato_API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,13 +12,14 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Extrato_API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260518033209_RenameLicaoConcluidaColumns")]
+    partial class RenameLicaoConcluidaColumns
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.0")
                 .HasAnnotation("ProductVersion", "8.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
@@ -93,71 +95,30 @@ namespace Extrato_API.Migrations
                     b.ToTable("tb_atividade");
                 });
 
-            modelBuilder.Entity("Extrato_API.Models.Avatar", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id_avatar");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("UrlImagem")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("url_imagem");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("tb_avatar", (string)null);
-                });
-
-            modelBuilder.Entity("Extrato_API.Models.Estudante", b =>
+            modelBuilder.Entity("Extrato_API.Models.EstatisticasUsuario", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id_estudante");
-
-                    b.Property<int?>("AvatarId")
-                        .HasColumnType("integer")
-                        .HasColumnName("avatar_id");
-
-                    b.Property<DateTime?>("DataUltimaAtividade")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("data_ultima_atividade");
+                        .HasColumnType("uuid");
 
                     b.Property<int>("ExerciciosResolvidos")
-                        .HasColumnType("integer")
-                        .HasColumnName("exercicios_resolvidos");
+                        .HasColumnType("integer");
 
                     b.Property<int>("LicoesConcluidas")
-                        .HasColumnType("integer")
-                        .HasColumnName("licoes_concluidas");
+                        .HasColumnType("integer");
 
-                    b.Property<int>("Nivel")
-                        .HasColumnType("integer")
-                        .HasColumnName("nivel");
-
-                    b.Property<int>("QuantVidas")
-                        .HasColumnType("integer")
-                        .HasColumnName("quant_vidas");
+                    b.Property<int>("Pontuacao")
+                        .HasColumnType("integer");
 
                     b.Property<int>("SequenciaDias")
-                        .HasColumnType("integer")
-                        .HasColumnName("sequencia_dias");
+                        .HasColumnType("integer");
 
                     b.Property<Guid>("UsuarioId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("usuario_id");
-
-                    b.Property<int>("XpTotal")
-                        .HasColumnType("integer")
-                        .HasColumnName("xp_total");
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
-                    b.ToTable("tb_estudante", (string)null);
+                    b.ToTable("EstatisticasUsuarios");
                 });
 
             modelBuilder.Entity("Extrato_API.Models.Licao", b =>
@@ -253,34 +214,6 @@ namespace Extrato_API.Migrations
                     b.ToTable("tb_modulo");
                 });
 
-            modelBuilder.Entity("Extrato_API.Models.ResetSenha", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Codigo")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("codigo");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("email");
-
-                    b.Property<DateTime>("Expiracao")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("expiracao");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("tb_reset_senha");
-                });
-
             modelBuilder.Entity("Extrato_API.Models.Tentativa", b =>
                 {
                     b.Property<int>("Id")
@@ -329,12 +262,8 @@ namespace Extrato_API.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id_usuario");
-                        .HasColumnType("uuid")
-                        .HasColumnName("id_usuario");
 
                     b.Property<DateTime>("DataCadastro")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("criado_em");
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("criado_em");
 
@@ -342,13 +271,9 @@ namespace Extrato_API.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("email");
-                        .HasColumnType("text")
-                        .HasColumnName("email");
 
                     b.Property<string>("NomeUsuario")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("nome");
                         .HasColumnType("text")
                         .HasColumnName("nome");
 
@@ -361,82 +286,9 @@ namespace Extrato_API.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("tipo_usuario");
-                        .HasColumnType("text")
-                        .HasColumnName("senha");
-
-                    b.Property<string>("TipoUsuario")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("tipo_usuario");
 
                     b.HasKey("Id");
 
-                    b.ToTable("tb_usuario", (string)null);
-                });
-
-            modelBuilder.Entity("Extrato_API.Models.Alternativa", b =>
-                {
-                    b.HasOne("Extrato_API.Models.Atividade", "Atividade")
-                        .WithMany("Alternativas")
-                        .HasForeignKey("AtividadeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Atividade");
-                });
-
-            modelBuilder.Entity("Extrato_API.Models.Atividade", b =>
-                {
-                    b.HasOne("Extrato_API.Models.Licao", "Licao")
-                        .WithMany("Atividades")
-                        .HasForeignKey("LicaoId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Licao");
-                });
-
-            modelBuilder.Entity("Extrato_API.Models.Licao", b =>
-                {
-                    b.HasOne("Extrato_API.Models.Modulo", "Modulo")
-                        .WithMany("Licoes")
-                        .HasForeignKey("ModuloId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Modulo");
-                });
-
-            modelBuilder.Entity("Extrato_API.Models.Tentativa", b =>
-                {
-                    b.HasOne("Extrato_API.Models.Alternativa", "AlternativaEscolhida")
-                        .WithMany()
-                        .HasForeignKey("AlternativaEscolhidaId");
-
-                    b.HasOne("Extrato_API.Models.Atividade", "Atividade")
-                        .WithMany()
-                        .HasForeignKey("AtividadeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("AlternativaEscolhida");
-
-                    b.Navigation("Atividade");
-                });
-
-            modelBuilder.Entity("Extrato_API.Models.Atividade", b =>
-                {
-                    b.Navigation("Alternativas");
-                });
-
-            modelBuilder.Entity("Extrato_API.Models.Licao", b =>
-                {
-                    b.Navigation("Atividades");
-                });
-
-            modelBuilder.Entity("Extrato_API.Models.Modulo", b =>
-                {
-                    b.Navigation("Licoes");
                     b.ToTable("tb_usuario", (string)null);
                 });
 
