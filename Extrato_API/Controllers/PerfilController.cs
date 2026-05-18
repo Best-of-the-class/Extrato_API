@@ -5,6 +5,7 @@ using System.IdentityModel.Tokens.Jwt;
 using Extrato_API.DTOs;
 using Extrato_API.Data;
 using Extrato_API.Models;
+using Extrato_API.Services.Implementations;
 
 namespace Extrato_API.Controllers
 {
@@ -14,58 +15,118 @@ namespace Extrato_API.Controllers
     public class PerfilController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly ConquistaService _conquistaService;
 
-        public PerfilController(AppDbContext context)
+        public PerfilController(AppDbContext context, ConquistaService conquistaService)
         {
             _context = context;
+            _conquistaService = conquistaService;
         }
 
         [HttpGet]
         public IActionResult ObterPerfil()
         {
             var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
-                      ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                   ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             if (string.IsNullOrEmpty(sub) || !Guid.TryParse(sub, out var usuarioId))
-                return Unauthorized(new { Sucesso = false, Mensagem = "Usuário não autenticado." });
+            {
+                return Unauthorized(new
+                {
+                    Sucesso = false,
+                    Mensagem = "Usuário não autenticado."
+                });
+            }
 
             var usuario = _context.Usuarios.FirstOrDefault(u => u.Id == usuarioId);
 
             if (usuario == null)
-                return NotFound(new { Sucesso = false, Mensagem = "Usuário não encontrado." });
+            {
+                return NotFound(new
+                {
+                    Sucesso = false,
+                    Mensagem = "Usuário não encontrado."
+                });
+            }
 
             var estudante = _context.Estudante.FirstOrDefault(e => e.UsuarioId == usuarioId);
 
-            return Ok(new
+            if (estudante == null)
             {
-                Sucesso = true,
-                NomeUsuario = usuario.NomeUsuario,
-                Email = usuario.Email,
-                AvatarId = estudante?.AvatarId,
-                LicoesConcluidas = estudante?.LicoesConcluidas ?? 0,
-                ExerciciosResolvidos = estudante?.ExerciciosResolvidos ?? 0,
-                Pontuacao = estudante?.XpTotal ?? 0,
-                SequenciaDias = estudante?.SequenciaDias ?? 0,
-                QuantVidas = estudante?.QuantVidas ?? 5
-            });
+                return NotFound(new
+                {
+                    Sucesso = false,
+                    Mensagem = "Perfil do estudante não encontrado."
+                });
+            }
+
+            var conquistas = _conquistaService.ObterConquistas(estudante);
+
+            return Ok(CriarRespostaPerfil(usuario, estudante, conquistas));
         }
 
         [HttpPut("editar")]
         public IActionResult EditarPerfil([FromBody] EditarPerfilDTO dto)
         {
             var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
-                      ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                   ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             if (string.IsNullOrEmpty(sub) || !Guid.TryParse(sub, out var usuarioId))
-                return Unauthorized(new { Sucesso = false, Mensagem = "Usuário não autenticado." });
+            {
+                return Unauthorized(new
+                {
+                    Sucesso = false,
+                    Mensagem = "Usuário não autenticado."
+                });
+            }
 
             var usuario = _context.Usuarios.FirstOrDefault(u => u.Id == usuarioId);
 
             if (usuario == null)
-                return NotFound(new { Sucesso = false, Mensagem = "Usuário não encontrado." });
+            {
+                return NotFound(new
+                {
+                    Sucesso = false,
+                    Mensagem = "Usuário não encontrado."
+                });
+            }
+
+            if (!string.Equals(usuario.Email, dto.Email, StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(new
+                {
+                    Sucesso = false,
+                    Mensagem = "E-mail não corresponde à conta autenticada."
+                });
+            }
+
+            if (string.IsNullOrWhiteSpace(dto.NovoNome))
+            {
+                return BadRequest(new
+                {
+                    Sucesso = false,
+                    Mensagem = "O novo nome é obrigatório."
+                });
+            }
+
+            var estudante = _context.Estudante
+                .FirstOrDefault(e => e.UsuarioId == usuarioId);
+
+            if (estudante == null)
+            {
+                return NotFound(new
+                {
+                    Sucesso = false,
+                    Mensagem = "Perfil do estudante não encontrado."
+                });
+            }
+
+            var novoEmailNormalizado = dto.NovoEmail.Trim().ToLower();
+            var novoNomeNormalizado = dto.NovoNome.Trim();
 
             bool emailJaExiste = _context.Usuarios.Any(u =>
-                u.Id != usuario.Id && u.Email.ToLower() == novoEmailNormalizado);
+                u.Id != usuario.Id &&
+                u.Email.ToLower() == novoEmailNormalizado);
 
             if (emailJaExiste)
             {
@@ -76,24 +137,42 @@ namespace Extrato_API.Controllers
                 });
             }
 
+            usuario.Email = novoEmailNormalizado;
+            usuario.NomeUsuario = novoNomeNormalizado;
+
             if (dto.AvatarId.HasValue)
             {
-                var estudante = _context.Estudante.FirstOrDefault(e => e.UsuarioId == usuarioId);
-                if (estudante != null)
-                    estudante.AvatarId = dto.AvatarId.Value;
+                bool avatarExiste = _context.Avatares.Any(a => a.Id == dto.AvatarId.Value);
+
+                if (!avatarExiste)
+                {
+                    return BadRequest(new
+                    {
+                        Sucesso = false,
+                        Mensagem = "Avatar inválido. Escolha um avatar disponível."
+                    });
+                }
+
+                estudante.AvatarId = dto.AvatarId.Value;
             }
 
             _context.SaveChanges();
 
-            var stats = _context.EstatisticasUsuarios.FirstOrDefault(e => e.UsuarioId == usuario.Id);
+            var conquistas = _conquistaService.ObterConquistas(estudante);
 
             return Ok(CriarRespostaPerfil(
                 usuario,
-                stats,
-                "Perfil atualizado com sucesso."));
+                estudante,
+                conquistas,
+                "Perfil atualizado com sucesso."
+            ));
         }
 
-        private static object CriarRespostaPerfil(Usuario usuario, EstatisticasUsuario? stats, string? mensagem = null)
+        private static object CriarRespostaPerfil(
+            Usuario usuario,
+            Estudante? estudante,
+            IReadOnlyCollection<ConquistaDTO>? conquistas = null,
+            string? mensagem = null)
         {
             return new
             {
@@ -101,10 +180,13 @@ namespace Extrato_API.Controllers
                 Mensagem = mensagem,
                 NomeUsuario = usuario.NomeUsuario,
                 Email = usuario.Email,
-                LicoesConcluidas = stats?.LicoesConcluidas ?? 0,
-                ExerciciosResolvidos = stats?.ExerciciosResolvidos ?? 0,
-                Pontuacao = stats?.Pontuacao ?? 0,
-                SequenciaDias = stats?.SequenciaDias ?? 0
+                AvatarId = estudante?.AvatarId,
+                LicoesConcluidas = estudante?.LicoesConcluidas ?? 0,
+                ExerciciosResolvidos = estudante?.ExerciciosResolvidos ?? 0,
+                Pontuacao = estudante?.XpTotal ?? 0,
+                SequenciaDias = estudante?.SequenciaDias ?? 0,
+                QuantVidas = estudante?.QuantVidas ?? 5,
+                Conquistas = conquistas ?? Array.Empty<ConquistaDTO>()
             };
         }
     }

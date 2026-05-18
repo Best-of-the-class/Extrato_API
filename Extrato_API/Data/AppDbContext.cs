@@ -8,7 +8,8 @@ namespace Extrato_API.Data
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
         public DbSet<Usuario> Usuarios { get; set; }
-        public DbSet<EstatisticasUsuario> EstatisticasUsuarios { get; set; }
+        public DbSet<Conquista> Conquistas { get; set; }
+        public DbSet<ConquistaEstudante> ConquistasEstudante { get; set; }
 
         public DbSet<Estudante> Estudante { get; set; }
         public DbSet<Avatar> Avatares { get; set; }
@@ -33,6 +34,38 @@ namespace Extrato_API.Data
                 entity.Property(e => e.DataCadastro).HasColumnName("criado_em");
                 entity.Ignore(e => e.CodigoResetSenha);
                 entity.Ignore(e => e.CodigoResetExpiracao);
+            });
+
+            modelBuilder.Entity<Conquista>(entity =>
+            {
+                entity.ToTable("tb_conquista");
+                entity.Property(e => e.Id).HasColumnName("id_conquista");
+                entity.Property(e => e.Titulo).HasColumnName("titulo");
+                entity.Property(e => e.Descricao).HasColumnName("descricao");
+                entity.Property(e => e.Icone).HasColumnName("icone");
+                entity.Property(e => e.TipoDesbloqueio).HasColumnName("tipo_desbloqueio");
+                entity.Property(e => e.BackgroundCor).HasColumnName("background_cor");
+            });
+
+            modelBuilder.Entity<ConquistaEstudante>(entity =>
+            {
+                entity.ToTable("tb_conquista_estudante");
+                entity.Property(e => e.Id).HasColumnName("id_conquista_estudante");
+                entity.Property(e => e.EstudanteId).HasColumnName("estudante_id");
+                entity.Property(e => e.ConquistaId).HasColumnName("id_conquista");
+                entity.Property(e => e.ConquistadoEm).HasColumnName("conquistado_em");
+
+                entity.HasIndex(e => new { e.EstudanteId, e.ConquistaId }).IsUnique();
+
+                entity.HasOne<Estudante>()
+                    .WithMany()
+                    .HasForeignKey(e => e.EstudanteId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne<Conquista>()
+                    .WithMany()
+                    .HasForeignKey(e => e.ConquistaId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<Estudante>(entity =>

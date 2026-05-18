@@ -6,6 +6,7 @@ using System.IdentityModel.Tokens.Jwt;
 using Extrato_API.Data;
 using Extrato_API.Models;
 using Extrato_API.DTOs;
+using Extrato_API.Services.Implementations;
 
 namespace Extrato_API.Controllers
 {
@@ -14,10 +15,14 @@ namespace Extrato_API.Controllers
     public class LicaoController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly ConquistaService _conquistaService;
+        private readonly XpService _xpService;
 
-        public LicaoController(AppDbContext context)
+        public LicaoController(AppDbContext context, ConquistaService conquistaService, XpService xpService)
         {
             _context = context;
+            _conquistaService = conquistaService;
+            _xpService = xpService;
         }
 
         // ADMIN: Criar aula completa
@@ -201,8 +206,24 @@ namespace Extrato_API.Controllers
 
         //Concluir lição
         [HttpPost("concluir")]
+        [Authorize]
         public IActionResult ConcluirLicao([FromBody] ConcluirLicaoDTO dto)
         {
+            var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                   ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(sub) || !Guid.TryParse(sub, out var usuarioId))
+                return Unauthorized(new { Sucesso = false, Mensagem = "Usuário não autenticado." });
+
+            if (dto.EstudanteId != Guid.Empty && dto.EstudanteId != usuarioId)
+            {
+                return StatusCode(403, new
+                {
+                    Sucesso = false,
+                    Mensagem = "Não é permitido concluir lições para outro usuário."
+                });
+            }
+
             var licao = _context.Licoes
                 .Include(l => l.Atividades)
                     .ThenInclude(a => a.Alternativas)
@@ -211,64 +232,27 @@ namespace Extrato_API.Controllers
             if (licao == null)
                 return NotFound(new { Mensagem = "Lição não encontrada." });
 
-            var estudante = _context.Estudante.FirstOrDefault(e => e.UsuarioId == dto.EstudanteId);
+            var estudante = _context.Estudante.FirstOrDefault(e => e.UsuarioId == usuarioId);
             if (estudante == null)
                 return NotFound(new { Mensagem = "Perfil do estudante não encontrado." });
 
             if (estudante.QuantVidas <= 0)
                 return BadRequest(new { Sucesso = false, Mensagem = "Sem vidas restantes. Aguarde a recarga." });
 
-            int acertos = 0;
-            int erros = 0;
-            int xpTotal = 0;
-
-            int totalAtividades = licao.Atividades?.Count ?? 0;
-            int xpPorAcerto = (licao.RecompensaXp > 0 && totalAtividades > 0)
-                ? Math.Max(1, licao.RecompensaXp / totalAtividades)
-                : 100;
-
-            foreach (var resposta in dto.Respostas)
-            {
-                var atividade = licao.Atividades.FirstOrDefault(a => a.Id == resposta.AtividadeId);
-                bool correta = false;
-
-                if (atividade != null)
-                {
-                    var altEscolhida = atividade.Alternativas.FirstOrDefault(a => a.Id == resposta.AlternativaEscolhidaId);
-                    correta = altEscolhida?.Correta == true;
-                }
-
-                if (correta) acertos++; else erros++;
-
-                int xpGanho = correta ? xpPorAcerto : 0;
-                xpTotal += xpGanho;
-
-                _context.Tentativas.Add(new Tentativa
-                {
-                    EstudanteId = dto.EstudanteId,
-                    AtividadeId = resposta.AtividadeId,
-                    AlternativaEscolhidaId = resposta.AlternativaEscolhidaId,
-                    Correta = correta,
-                    XpGanho = xpGanho,
-                    TentadoEm = DateTime.UtcNow
-                });
-            }
+            var resultadoXp = _xpService.ProcessarRespostas(estudante, licao, dto.Respostas);
 
             // Remove 1 vida se errou pelo menos 1 questão
-            if (erros > 0)
+            if (resultadoXp.Erros > 0)
                 estudante.QuantVidas = Math.Max(0, estudante.QuantVidas - 1);
 
-            estudante.XpTotal += xpTotal;
-            estudante.ExerciciosResolvidos += (acertos + erros);
-
-            bool jaConcluiu = _context.LicaoConcluidas.Any(lc => lc.UsuarioId == dto.EstudanteId && lc.LicaoId == licao.Id);
+            bool jaConcluiu = _context.LicaoConcluidas.Any(lc => lc.UsuarioId == usuarioId && lc.LicaoId == licao.Id);
             bool ganhouSequencia = false;
 
             if (!jaConcluiu)
             {
                 _context.LicaoConcluidas.Add(new LicaoConcluida
                 {
-                    UsuarioId = dto.EstudanteId,
+                    UsuarioId = usuarioId,
                     LicaoId = licao.Id,
                     ConcluidoEm = DateTime.UtcNow
                 });
@@ -305,14 +289,22 @@ namespace Extrato_API.Controllers
 
             _context.SaveChanges();
 
+            var resultadoConquistas = _conquistaService.AvaliarConquistas(usuarioId, estudante);
+
+            if (resultadoConquistas.NovasConquistas.Any())
+                _context.SaveChanges();
+
             return Ok(new
             {
-                acertos,
-                erros,
-                xp = xpTotal,
+                acertos = resultadoXp.Acertos,
+                erros = resultadoXp.Erros,
+                xp = resultadoXp.XpGanhoTotal,
+                xpTotalUsuario = resultadoXp.XpTotalUsuario,
+                xpPorAtividade = resultadoXp.Atividades,
                 ganhouSequencia,
                 vidasRestantes = estudante.QuantVidas,
-                sequenciaAtual = estudante.SequenciaDias
+                sequenciaAtual = estudante.SequenciaDias,
+                novasConquistas = resultadoConquistas.NovasConquistas
             });
         }
 
