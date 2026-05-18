@@ -3,6 +3,7 @@ using System;
 using Extrato_API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,13 +12,14 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Extrato_API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260517033917_AdicionarTabelaResetSenha")]
+    partial class AdicionarTabelaResetSenha
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.0")
                 .HasAnnotation("ProductVersion", "8.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
@@ -222,7 +224,7 @@ namespace Extrato_API.Migrations
 
                     b.Property<Guid>("UsuarioId")
                         .HasColumnType("uuid")
-                        .HasColumnName("id_usuario");
+                        .HasColumnName("usuario_id");
 
                     b.HasKey("Id");
 
@@ -329,12 +331,8 @@ namespace Extrato_API.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id_usuario");
-                        .HasColumnType("uuid")
-                        .HasColumnName("id_usuario");
 
                     b.Property<DateTime>("DataCadastro")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("criado_em");
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("criado_em");
 
@@ -342,13 +340,9 @@ namespace Extrato_API.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("email");
-                        .HasColumnType("text")
-                        .HasColumnName("email");
 
                     b.Property<string>("NomeUsuario")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("nome");
                         .HasColumnType("text")
                         .HasColumnName("nome");
 
@@ -361,82 +355,9 @@ namespace Extrato_API.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("tipo_usuario");
-                        .HasColumnType("text")
-                        .HasColumnName("senha");
-
-                    b.Property<string>("TipoUsuario")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("tipo_usuario");
 
                     b.HasKey("Id");
 
-                    b.ToTable("tb_usuario", (string)null);
-                });
-
-            modelBuilder.Entity("Extrato_API.Models.Alternativa", b =>
-                {
-                    b.HasOne("Extrato_API.Models.Atividade", "Atividade")
-                        .WithMany("Alternativas")
-                        .HasForeignKey("AtividadeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Atividade");
-                });
-
-            modelBuilder.Entity("Extrato_API.Models.Atividade", b =>
-                {
-                    b.HasOne("Extrato_API.Models.Licao", "Licao")
-                        .WithMany("Atividades")
-                        .HasForeignKey("LicaoId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Licao");
-                });
-
-            modelBuilder.Entity("Extrato_API.Models.Licao", b =>
-                {
-                    b.HasOne("Extrato_API.Models.Modulo", "Modulo")
-                        .WithMany("Licoes")
-                        .HasForeignKey("ModuloId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Modulo");
-                });
-
-            modelBuilder.Entity("Extrato_API.Models.Tentativa", b =>
-                {
-                    b.HasOne("Extrato_API.Models.Alternativa", "AlternativaEscolhida")
-                        .WithMany()
-                        .HasForeignKey("AlternativaEscolhidaId");
-
-                    b.HasOne("Extrato_API.Models.Atividade", "Atividade")
-                        .WithMany()
-                        .HasForeignKey("AtividadeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("AlternativaEscolhida");
-
-                    b.Navigation("Atividade");
-                });
-
-            modelBuilder.Entity("Extrato_API.Models.Atividade", b =>
-                {
-                    b.Navigation("Alternativas");
-                });
-
-            modelBuilder.Entity("Extrato_API.Models.Licao", b =>
-                {
-                    b.Navigation("Atividades");
-                });
-
-            modelBuilder.Entity("Extrato_API.Models.Modulo", b =>
-                {
-                    b.Navigation("Licoes");
                     b.ToTable("tb_usuario", (string)null);
                 });
 
