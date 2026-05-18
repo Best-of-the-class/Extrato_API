@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Extrato_API.Data;
+using Extrato_API.Services.Implementations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 
@@ -31,6 +32,8 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddControllers();
+builder.Services.AddScoped<ConquistaService>();
+builder.Services.AddScoped<XpService>();
 
 //CORS
 builder.Services.AddCors(options =>

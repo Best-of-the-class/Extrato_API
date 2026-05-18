@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Extrato_API.DTOs
 {
-    // GET /api/perfil — buscar perfil completo
     public class ObterPerfilDTO
     {
         [Required(ErrorMessage = "O e-mail é obrigatório.")]
@@ -23,5 +22,6 @@ namespace Extrato_API.DTOs
         [Required(ErrorMessage = "O novo e-mail é obrigatório.")]
         [EmailAddress(ErrorMessage = "Novo e-mail inválido.")]
         public string NovoEmail { get; set; } = string.Empty;
+        public int? AvatarId { get; set; }
     }
 }
