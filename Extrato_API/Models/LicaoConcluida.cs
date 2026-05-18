@@ -10,13 +10,12 @@ namespace Extrato_API.Models
         [Column("id_licao_concluida")]
         public int Id { get; set; }
 
-        [Required]
-        [Column("usuario_id")]
-        public Guid UsuarioId { get; set; }
-
-        [Required]
-        [Column("licao_id")]
+        [Column("id_licao")]
         public int LicaoId { get; set; }
+
+        [Column("id_usuario")]
+
+        public Guid UsuarioId { get; set; }
 
         [Column("concluido_em")]
         public DateTime ConcluidoEm { get; set; } = DateTime.UtcNow;

@@ -10,7 +10,7 @@ namespace Extrato_API.DTOs
         public string Email { get; set; } = string.Empty;
     }
 
-    // PUT /api/perfil/editar — salvar todas as alterações do perfil (nome + avatar)
+    // PUT /api/perfil/editar — salvar alterações de nome e e-mail
     public class EditarPerfilDTO
     {
         [Required(ErrorMessage = "O e-mail é obrigatório.")]
@@ -20,7 +20,8 @@ namespace Extrato_API.DTOs
         [Required(ErrorMessage = "O novo nome é obrigatório.")]
         public string NovoNome { get; set; } = string.Empty;
 
-        // AvatarId é opcional — null significa manter o atual
-        public int? AvatarId { get; set; }
+        [Required(ErrorMessage = "O novo e-mail é obrigatório.")]
+        [EmailAddress(ErrorMessage = "Novo e-mail inválido.")]
+        public string NovoEmail { get; set; } = string.Empty;
     }
 }
