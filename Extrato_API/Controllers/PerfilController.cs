@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 using Extrato_API.DTOs;
 using Extrato_API.Data;
 using Extrato_API.Models;
@@ -7,6 +9,7 @@ namespace Extrato_API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class PerfilController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -17,21 +20,32 @@ namespace Extrato_API.Controllers
         }
 
         [HttpGet]
-        public IActionResult ObterPerfil([FromQuery] ObterPerfilDTO dto)
+        public IActionResult ObterPerfil()
         {
-            var emailNormalizado = dto.Email.Trim().ToLower();
+            var sub = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value
+                      ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            var usuario = _context.Usuarios.FirstOrDefault(u => u.Email.ToLower() == emailNormalizado);
+            if (string.IsNullOrEmpty(sub) || !Guid.TryParse(sub, out var usuarioId))
+                return Unauthorized(new { Sucesso = false, Mensagem = "Usuário não autenticado." });
+
+            var usuario = _context.Usuarios.FirstOrDefault(u => u.Id == usuarioId);
 
             if (usuario == null)
                 return NotFound(new { Sucesso = false, Mensagem = "Usuário não encontrado." });
 
-            var stats = _context.EstatisticasUsuarios.FirstOrDefault(e => e.UsuarioId == usuario.Id);
+            var stats = _context.Estudante.FirstOrDefault(e => e.UsuarioId == usuario.Id);
 
-            return Ok(CriarRespostaPerfil(
-                usuario,
-                stats,
-                "Perfil carregado com sucesso."));
+            return Ok(new
+            {
+                Sucesso = true,
+                NomeUsuario = usuario.NomeUsuario,
+                Email = usuario.Email,
+                //AvatarId = usuario.AvatarId,
+                LicoesConcluidas = stats?.LicoesConcluidas ?? 0,
+                ExerciciosResolvidos = stats?.ExerciciosResolvidos ?? 0,
+                Pontuacao = stats?.XpTotal ?? 0,
+                SequenciaDias = stats?.SequenciaDias ?? 0
+            });
         }
 
         [HttpPut("editar")]

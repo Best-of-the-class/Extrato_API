@@ -8,7 +8,13 @@ namespace Extrato_API.Data
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
         public DbSet<Usuario> Usuarios { get; set; }
-        public DbSet<EstatisticasUsuario> EstatisticasUsuarios { get; set; }
+        public DbSet<Estudante> Estudante { get; set; }
+        public DbSet<Modulo> Modulos { get; set; }
+        public DbSet<Licao> Licoes { get; set; }
+        public DbSet<Atividade> Atividades { get; set; }
+        public DbSet<Alternativa> Alternativas { get; set; }
+        public DbSet<Tentativa> Tentativas { get; set; }
+        public DbSet<LicaoConcluida> LicaoConcluidas { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
