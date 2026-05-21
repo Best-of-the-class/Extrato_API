@@ -27,16 +27,19 @@ namespace Extrato_API.Controllers
         [HttpPost("cadastro")]
         public IActionResult Cadastrar([FromBody] CadastroUsuarioDTO dto)
         {
-            bool emailJaExiste = _context.Usuarios.Any(u => u.Email == dto.Email);
+            var emailLimpo = dto.Email.Trim().ToLower();
+            var senhaLimpa = dto.Senha.Trim();
+
+            bool emailJaExiste = _context.Usuarios.Any(u => u.Email.ToLower() == emailLimpo);
             if (emailJaExiste)
                 return BadRequest(new { Sucesso = false, Mensagem = "Este e-mail já está em uso. Tente fazer login!" });
 
-            string senhaHasheada = BCrypt.Net.BCrypt.HashPassword(dto.Senha + "poupas_pepper_secret");
+            string senhaHasheada = BCrypt.Net.BCrypt.HashPassword(senhaLimpa + "poupas_pepper_secret");
 
             var novoUsuario = new Usuario
             {
-                NomeUsuario = dto.NomeUsuario,
-                Email = dto.Email,
+                NomeUsuario = dto.NomeUsuario.Trim(),
+                Email = emailLimpo,
                 TipoUsuario = "estudante",
                 SenhaHash = senhaHasheada
             };
@@ -53,30 +56,58 @@ namespace Extrato_API.Controllers
         [HttpPost("login")]
         public IActionResult Login([FromBody] LoginUsuarioDTO dto)
         {
-            var usuario = _context.Usuarios.FirstOrDefault(u => u.Email == dto.Email);
-            if (usuario == null)
-                return Unauthorized(new { Sucesso = false, Mensagem = "Email ou senha incorretos." });
+            var emailLimpo = dto.Email.Trim().ToLower();
+            var senhaLimpa = dto.Senha.Trim();
 
-            if (!BCrypt.Net.BCrypt.Verify(dto.Senha + "poupas_pepper_secret", usuario.SenhaHash))
+            var usuario = _context.Usuarios.FirstOrDefault(u => u.Email.ToLower() == emailLimpo);
+
+            if (usuario == null)
+            {
                 return Unauthorized(new { Sucesso = false, Mensagem = "Email ou senha incorretos." });
+            }
+
+            bool senhaValida = BCrypt.Net.BCrypt.Verify(senhaLimpa + "poupas_pepper_secret", usuario.SenhaHash);
+
+            if (!senhaValida)
+            { 
+                return Unauthorized(new { Sucesso = false, Mensagem = "Email ou senha incorretos." });
+            }
 
             if (usuario.TipoUsuario.ToLower() == "admin")
                 return Unauthorized(new { Sucesso = false, Mensagem = "Administradores devem acessar via painel web." });
 
-            return Ok(new { Sucesso = true, Mensagem = "Bem-vindo de volta!", Nome = usuario.NomeUsuario, Tipo = usuario.TipoUsuario, Token = GerarTokenJwt(usuario) });
+            return Ok(new
+            {
+                Sucesso = true,
+                Mensagem = "Bem-vindo de volta!",
+                Nome = usuario.NomeUsuario,
+                Tipo = usuario.TipoUsuario,
+                Token = GerarTokenJwt(usuario)
+            });
         }
 
         [HttpPost("login-admin")]
         public IActionResult LoginAdmin([FromBody] LoginUsuarioDTO dto)
         {
-            var usuario = _context.Usuarios.FirstOrDefault(u => u.Email == dto.Email);
-            if (usuario == null || usuario.SenhaHash != dto.Senha)
+            var emailLimpo = dto.Email.Trim().ToLower();
+            var senhaLimpa = dto.Senha.Trim();
+
+            var usuario = _context.Usuarios.FirstOrDefault(u => u.Email.ToLower() == emailLimpo);
+
+            if (usuario == null || usuario.SenhaHash != senhaLimpa)
                 return Unauthorized(new { Sucesso = false, Mensagem = "Credenciais inválidas." });
 
             if (usuario.TipoUsuario.ToLower() != "admin")
                 return StatusCode(403, new { Sucesso = false, Mensagem = "Acesso negado." });
 
-            return Ok(new { Sucesso = true, Mensagem = "Bem-vindo ao Painel Administrativo!", Nome = usuario.NomeUsuario, Tipo = usuario.TipoUsuario, Token = GerarTokenJwt(usuario) });
+            return Ok(new
+            {
+                Sucesso = true,
+                Mensagem = "Bem-vindo ao Painel Administrativo!",
+                Nome = usuario.NomeUsuario,
+                Tipo = usuario.TipoUsuario,
+                Token = GerarTokenJwt(usuario)
+            });
         }
 
         [HttpPost("recuperar-senha")]

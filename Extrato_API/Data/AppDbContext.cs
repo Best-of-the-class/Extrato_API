@@ -19,6 +19,7 @@ namespace Extrato_API.Data
         public DbSet<Alternativa> Alternativas { get; set; }
         public DbSet<Tentativa> Tentativas { get; set; }
         public DbSet<LicaoConcluida> LicaoConcluidas { get; set; }
+        public DbSet<Dicionario> Dicionarios { get; set; }
         public DbSet<ResetSenha> ResetSenhas { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -91,6 +92,15 @@ namespace Extrato_API.Data
             });
 
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Dicionario>(entity =>
+            {
+                entity.ToTable("tb_dicionario");
+                entity.Property(e => e.Id).HasColumnName("id_dicionario");
+                entity.Property(e => e.Termo).HasColumnName("termo");
+                entity.Property(e => e.Definicao).HasColumnName("definicao");
+                entity.Property(e => e.CriadoEm).HasColumnName("criado_em");
+            });
         }
     }
 }
