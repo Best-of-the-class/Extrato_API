@@ -47,7 +47,7 @@ namespace Extrato_API.Controllers
             if (!string.Equals(usuario.Email, dto.Email, StringComparison.OrdinalIgnoreCase))
                 return BadRequest(new { Sucesso = false, Mensagem = "E-mail não corresponde à conta autenticada." });
 
-            var senhaValida = BCrypt.Net.BCrypt.Verify(dto.Senha + SecurityConstants.PasswordPepper, usuario.SenhaHash);
+            var senhaValida = BCrypt.Net.BCrypt.Verify(dto.Senha + SecurityConstants.HashPepper, usuario.SenhaHash);
             if (!senhaValida)
                 return Unauthorized(new { Sucesso = false, Mensagem = "Senha incorreta." });
 

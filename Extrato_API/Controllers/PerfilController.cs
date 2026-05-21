@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 using Extrato_API.DTOs;
@@ -25,6 +26,7 @@ namespace Extrato_API.Controllers
         }
 
         [HttpGet]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public IActionResult ObterPerfil()
         {
             if (!this.TryGetAuthenticatedUserId(out var usuarioId))
@@ -52,6 +54,7 @@ namespace Extrato_API.Controllers
         }
 
         [HttpPut("editar")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public IActionResult EditarPerfil([FromBody] EditarPerfilDTO dto)
         {
             if (!this.TryGetAuthenticatedUserId(out var usuarioId))

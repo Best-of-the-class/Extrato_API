@@ -55,13 +55,14 @@ namespace Extrato_API.Services.Implementations
                     resultado.Erros++;
 
                 var jaPontuadaAnteriormente = atividade != null && atividadesJaPontuadas.Contains(atividade.Id);
+                var devePontuar = correta && atividade != null && !jaPontuadaAnteriormente;
                 var xpGanho = 0;
 
-                if (correta && atividade != null && !jaPontuadaAnteriormente)
-                    xpPlanejadoPorAtividade.TryGetValue(atividade.Id, out xpGanho);
-
-                if (xpGanho > 0)
-                    atividadesJaPontuadas.Add(resposta.AtividadeId);
+                if (devePontuar)
+                {
+                    xpGanho = xpPlanejadoPorAtividade[atividade!.Id];
+                    atividadesJaPontuadas.Add(atividade.Id);
+                }
 
                 _context.Tentativas.Add(new Tentativa
                 {

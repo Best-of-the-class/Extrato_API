@@ -35,7 +35,7 @@ namespace Extrato_API.Controllers
             if (emailJaExiste)
                 return BadRequest(new { Sucesso = false, Mensagem = "Este e-mail já está em uso. Tente fazer login!" });
 
-            string senhaHasheada = BCrypt.Net.BCrypt.HashPassword(senhaLimpa + SecurityConstants.PasswordPepper);
+            string senhaHasheada = BCrypt.Net.BCrypt.HashPassword(senhaLimpa + SecurityConstants.HashPepper);
 
             var novoUsuario = new Usuario
             {
@@ -67,7 +67,7 @@ namespace Extrato_API.Controllers
                 return Unauthorized(new { Sucesso = false, Mensagem = "Email ou senha incorretos." });
             }
 
-            bool senhaValida = BCrypt.Net.BCrypt.Verify(senhaLimpa + SecurityConstants.PasswordPepper, usuario.SenhaHash);
+            bool senhaValida = BCrypt.Net.BCrypt.Verify(senhaLimpa + SecurityConstants.HashPepper, usuario.SenhaHash);
 
             if (!senhaValida)
             {
@@ -99,7 +99,7 @@ namespace Extrato_API.Controllers
             if (usuario == null)
                 return Unauthorized(new { Sucesso = false, Mensagem = "Credenciais inválidas." });
 
-            if (!BCrypt.Net.BCrypt.Verify(senhaLimpa + SecurityConstants.PasswordPepper, usuario.SenhaHash))
+            if (!BCrypt.Net.BCrypt.Verify(senhaLimpa + SecurityConstants.HashPepper, usuario.SenhaHash))
                 return Unauthorized(new { Sucesso = false, Mensagem = "Credenciais inválidas." });
 
             if (usuario.TipoUsuario.ToLower() != "admin")
@@ -204,7 +204,7 @@ namespace Extrato_API.Controllers
             if (usuario == null)
                 return NotFound(new { Sucesso = false, Mensagem = "Usuário não encontrado." });
 
-            usuario.SenhaHash = BCrypt.Net.BCrypt.HashPassword(dto.NovaSenha + SecurityConstants.PasswordPepper);
+            usuario.SenhaHash = BCrypt.Net.BCrypt.HashPassword(dto.NovaSenha + SecurityConstants.HashPepper);
             _context.ResetSenhas.Remove(reset);
             _context.SaveChanges();
 

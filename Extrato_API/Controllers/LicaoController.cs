@@ -53,31 +53,7 @@ namespace Extrato_API.Controllers
                 TituloConceito = "Teoria: " + dto.TituloLicao,
                 TextoConceito = dto.TextoConceito
             };
-
-            int ordemQuestao = 1;
-            foreach (var questaoDto in dto.Questoes)
-            {
-                var novaAtividade = new Atividade
-                {
-                    Enunciado = questaoDto.Enunciado,
-                    Dificuldade = dto.Dificuldade,
-                    Ordem = ordemQuestao,
-                    ProvaFinal = false
-                };
-
-                for (int i = 0; i < questaoDto.Alternativas.Count; i++)
-                {
-                    novaAtividade.Alternativas.Add(new Alternativa
-                    {
-                        Texto = questaoDto.Alternativas[i],
-                        Correta = (i == questaoDto.IndiceCorreta),
-                        Ordem = i + 1
-                    });
-                }
-
-                novaLicao.Atividades.Add(novaAtividade);
-                ordemQuestao++;
-            }
+            novaLicao.Atividades = CriarAtividades(dto);
 
             _context.Licoes.Add(novaLicao);
             _context.SaveChanges();
@@ -105,34 +81,7 @@ namespace Extrato_API.Controllers
                 licao.ModuloId = modulo.Id;
 
             _context.Atividades.RemoveRange(licao.Atividades);
-
-            int ordemQuestao = 1;
-            var novasAtividades = new List<Atividade>();
-            foreach (var questaoDto in dto.Questoes)
-            {
-                var novaAtividade = new Atividade
-                {
-                    Enunciado = questaoDto.Enunciado,
-                    Dificuldade = dto.Dificuldade,
-                    Ordem = ordemQuestao,
-                    ProvaFinal = false
-                };
-
-                for (int i = 0; i < questaoDto.Alternativas.Count; i++)
-                {
-                    novaAtividade.Alternativas.Add(new Alternativa
-                    {
-                        Texto = questaoDto.Alternativas[i],
-                        Correta = (i == questaoDto.IndiceCorreta),
-                        Ordem = i + 1
-                    });
-                }
-
-                novasAtividades.Add(novaAtividade);
-                ordemQuestao++;
-            }
-
-            licao.Atividades = novasAtividades;
+            licao.Atividades = CriarAtividades(dto);
             _context.SaveChanges();
 
             return Ok(new { Sucesso = true, Mensagem = "Aula editada com sucesso!" });
@@ -505,6 +454,37 @@ namespace Extrato_API.Controllers
             return (
                 alternativasOrdenadas.Select(alternativa => alternativa.Texto).ToList(),
                 alternativasOrdenadas.Select(alternativa => alternativa.Id).ToList());
+        }
+
+        private static List<Atividade> CriarAtividades(CriarAulaDTO dto)
+        {
+            var atividades = new List<Atividade>();
+
+            for (int indiceQuestao = 0; indiceQuestao < dto.Questoes.Count; indiceQuestao++)
+            {
+                var questaoDto = dto.Questoes[indiceQuestao];
+                var atividade = new Atividade
+                {
+                    Enunciado = questaoDto.Enunciado,
+                    Dificuldade = dto.Dificuldade,
+                    Ordem = indiceQuestao + 1,
+                    ProvaFinal = false
+                };
+
+                for (int indiceAlternativa = 0; indiceAlternativa < questaoDto.Alternativas.Count; indiceAlternativa++)
+                {
+                    atividade.Alternativas.Add(new Alternativa
+                    {
+                        Texto = questaoDto.Alternativas[indiceAlternativa],
+                        Correta = indiceAlternativa == questaoDto.IndiceCorreta,
+                        Ordem = indiceAlternativa + 1
+                    });
+                }
+
+                atividades.Add(atividade);
+            }
+
+            return atividades;
         }
     }
 }
