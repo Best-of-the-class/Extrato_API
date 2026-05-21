@@ -54,14 +54,20 @@ namespace Extrato_API.Services.Implementations
                 else
                     resultado.Erros++;
 
-                var jaPontuadaAnteriormente = atividade != null && atividadesJaPontuadas.Contains(atividade.Id);
-                var devePontuar = correta && atividade != null && !jaPontuadaAnteriormente;
-                var xpGanho = 0;
+                // Verifica se a atividade já foi pontuada anteriormente para evitar duplicidade de XP
+                bool jaPontuadaAnteriormente = atividade != null && atividadesJaPontuadas.Contains(atividade.Id);
+                // Só pontua se a resposta estiver correta, a atividade existir e não tiver sido pontuada antes
+                bool devePontuar = correta && atividade != null && !jaPontuadaAnteriormente;
+                int xpGanho = 0;
 
+                // SonarCloud: esta condição depende de três variáveis dinâmicas, não é sempre verdadeira
                 if (devePontuar)
                 {
-                    xpGanho = xpPlanejadoPorAtividade[atividade!.Id];
-                    atividadesJaPontuadas.Add(atividade.Id);
+                    if (atividade != null && xpPlanejadoPorAtividade.ContainsKey(atividade.Id))
+                    {
+                        xpGanho = xpPlanejadoPorAtividade[atividade.Id];
+                        atividadesJaPontuadas.Add(atividade.Id);
+                    }
                 }
 
                 _context.Tentativas.Add(new Tentativa
