@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Extrato_API.Data;
-using Extrato_API.DTOs;
 using Extrato_API.Services.Implementations;
 
 namespace Extrato_API.Controllers
@@ -50,12 +49,13 @@ namespace Extrato_API.Controllers
 
             var conquistas = _conquistaService.ObterConquistas(estudante);
 
+            //removido NovasConquistas que sempre vinha vazio e induzia o front ao erro.
+            //Novas conquistas são retornadas apenas no endpoint /concluir após cada lição.
             return Ok(new
             {
                 Sucesso = true,
                 Total = conquistas.Count,
                 Desbloqueadas = conquistas.Count(c => c.Desbloqueada),
-                NovasConquistas = Array.Empty<ConquistaDTO>(),
                 Conquistas = conquistas
             });
         }

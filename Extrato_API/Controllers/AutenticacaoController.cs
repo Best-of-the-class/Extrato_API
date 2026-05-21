@@ -114,7 +114,7 @@ namespace Extrato_API.Controllers
             });
         }
 
-        //normaliza e-mail igual ao login
+        //normaliza e-mail igual ao login + código seguro com RandomNumberGenerator
         [HttpPost("recuperar-senha")]
         public IActionResult SolicitarReset([FromBody] SolicitarResetSenhaDTO dto)
         {
@@ -128,7 +128,9 @@ namespace Extrato_API.Controllers
             if (resetAntigo != null)
                 _context.ResetSenhas.Remove(resetAntigo);
 
-            var codigo = new Random().Next(10000, 99999).ToString();
+            // Corrigido: RandomNumberGenerator é criptograficamente seguro (6 dígitos)
+            var codigoNumerico = System.Security.Cryptography.RandomNumberGenerator.GetInt32(100000, 999999);
+            var codigo = codigoNumerico.ToString();
 
             _context.ResetSenhas.Add(new ResetSenha
             {
@@ -138,13 +140,17 @@ namespace Extrato_API.Controllers
             });
             _context.SaveChanges();
 
-            try { EnviarEmailCodigo(usuario.Email, usuario.NomeUsuario, codigo); }
-            catch (Exception ex)
+            try
             {
+                EnviarEmailCodigo(usuario.Email, usuario.NomeUsuario, codigo);
+            }
+            catch
+            {
+                // Corrigido: não expõe detalhe interno do erro
                 var resetCriado = _context.ResetSenhas.FirstOrDefault(r => r.Email == emailLimpo);
                 if (resetCriado != null) _context.ResetSenhas.Remove(resetCriado);
                 _context.SaveChanges();
-                return StatusCode(500, new { Sucesso = false, Mensagem = "Erro ao enviar e-mail.", Detalhe = ex.Message });
+                return StatusCode(500, new { Sucesso = false, Mensagem = "Não foi possível enviar o e-mail. Tente novamente mais tarde." });
             }
 
             return Ok(new { Sucesso = true, Mensagem = "Se o e-mail existir, você receberá o código." });

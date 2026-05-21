@@ -292,7 +292,7 @@ namespace Extrato_API.Controllers
             });
         }
 
-        //endpoint de recarga de vidas
+        //endpoint de recarga de vidas com cooldown de 4 horas
         [HttpPost("recarregar-vidas")]
         [Authorize]
         public IActionResult RecarregarVidas()
@@ -309,6 +309,22 @@ namespace Extrato_API.Controllers
 
             if (estudante.QuantVidas >= 5)
                 return Ok(new { Sucesso = true, Mensagem = "Você já está com as vidas completas.", QuantVidas = estudante.QuantVidas });
+
+            // Cooldown de 4 horas desde a última atividade
+            if (estudante.DataUltimaAtividade.HasValue)
+            {
+                var horasDesdeUltimaAtividade = (DateTime.UtcNow - estudante.DataUltimaAtividade.Value).TotalHours;
+                if (horasDesdeUltimaAtividade < 4)
+                {
+                    var horasRestantes = Math.Ceiling(4 - horasDesdeUltimaAtividade);
+                    return BadRequest(new
+                    {
+                        Sucesso = false,
+                        Mensagem = $"Aguarde mais {horasRestantes}h para recarregar as vidas.",
+                        HorasRestantes = horasRestantes
+                    });
+                }
+            }
 
             estudante.QuantVidas = 5;
             _context.SaveChanges();

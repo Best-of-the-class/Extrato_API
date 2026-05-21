@@ -18,7 +18,11 @@ namespace Extrato_API.Data
             var config = builder.Build();
 
             var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
-            var connectionString = config.GetConnectionString("PostgresConnection") ?? config.GetConnectionString("DefaultConnection");
+
+            //mesma ordem do Program.cs (DefaultConnection antes de PostgresConnection)
+            var connectionString =
+                config.GetConnectionString("DefaultConnection") ??
+                config.GetConnectionString("PostgresConnection");
 
             if (string.IsNullOrWhiteSpace(connectionString))
                 throw new InvalidOperationException("Nenhuma connection string configurada para design-time DbContext.");
