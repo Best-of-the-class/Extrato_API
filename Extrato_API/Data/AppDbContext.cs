@@ -53,7 +53,7 @@ namespace Extrato_API.Data
                 entity.ToTable("tb_conquista_estudante");
                 entity.Property(e => e.Id).HasColumnName("id_conquista_estudante");
                 entity.Property(e => e.EstudanteId).HasColumnName("estudante_id");
-                entity.Property(e => e.ConquistaId).HasColumnName("id_conquista");
+                entity.Property(e => e.ConquistaId).HasColumnName("conquista_id");
                 entity.Property(e => e.ConquistadoEm).HasColumnName("conquistado_em");
 
                 entity.HasIndex(e => new { e.EstudanteId, e.ConquistaId }).IsUnique();

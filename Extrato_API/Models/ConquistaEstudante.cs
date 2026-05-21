@@ -15,7 +15,7 @@ namespace Extrato_API.Models
         public Guid EstudanteId { get; set; }
 
         [Required]
-        [Column("id_conquista")]
+        [Column("conquista_id")]
         public int ConquistaId { get; set; }
 
         [Required]

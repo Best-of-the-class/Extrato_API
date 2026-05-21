@@ -164,7 +164,7 @@ namespace Extrato_API.Migrations
 
                     b.Property<int>("ConquistaId")
                         .HasColumnType("integer")
-                        .HasColumnName("id_conquista");
+                        .HasColumnName("conquista_id");
 
                     b.Property<DateTime>("ConquistadoEm")
                         .HasColumnType("timestamp with time zone")
