@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using Extrato_API.Constants;
 using Extrato_API.Data;
 using Extrato_API.DTOs;
 using Extrato_API.Models;
@@ -34,7 +35,7 @@ namespace Extrato_API.Controllers
             if (emailJaExiste)
                 return BadRequest(new { Sucesso = false, Mensagem = "Este e-mail já está em uso. Tente fazer login!" });
 
-            string senhaHasheada = BCrypt.Net.BCrypt.HashPassword(senhaLimpa + "poupas_pepper_secret");
+            string senhaHasheada = BCrypt.Net.BCrypt.HashPassword(senhaLimpa + SecurityConstants.PasswordPepper);
 
             var novoUsuario = new Usuario
             {
@@ -66,7 +67,7 @@ namespace Extrato_API.Controllers
                 return Unauthorized(new { Sucesso = false, Mensagem = "Email ou senha incorretos." });
             }
 
-            bool senhaValida = BCrypt.Net.BCrypt.Verify(senhaLimpa + "poupas_pepper_secret", usuario.SenhaHash);
+            bool senhaValida = BCrypt.Net.BCrypt.Verify(senhaLimpa + SecurityConstants.PasswordPepper, usuario.SenhaHash);
 
             if (!senhaValida)
             {
@@ -98,7 +99,7 @@ namespace Extrato_API.Controllers
             if (usuario == null)
                 return Unauthorized(new { Sucesso = false, Mensagem = "Credenciais inválidas." });
 
-            if (!BCrypt.Net.BCrypt.Verify(senhaLimpa + "poupas_pepper_secret", usuario.SenhaHash))
+            if (!BCrypt.Net.BCrypt.Verify(senhaLimpa + SecurityConstants.PasswordPepper, usuario.SenhaHash))
                 return Unauthorized(new { Sucesso = false, Mensagem = "Credenciais inválidas." });
 
             if (usuario.TipoUsuario.ToLower() != "admin")
@@ -203,7 +204,7 @@ namespace Extrato_API.Controllers
             if (usuario == null)
                 return NotFound(new { Sucesso = false, Mensagem = "Usuário não encontrado." });
 
-            usuario.SenhaHash = BCrypt.Net.BCrypt.HashPassword(dto.NovaSenha + "poupas_pepper_secret");
+            usuario.SenhaHash = BCrypt.Net.BCrypt.HashPassword(dto.NovaSenha + SecurityConstants.PasswordPepper);
             _context.ResetSenhas.Remove(reset);
             _context.SaveChanges();
 

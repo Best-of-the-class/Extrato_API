@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
+using Extrato_API.Constants;
 using Extrato_API.DTOs;
 using Extrato_API.Data;
+using Extrato_API.Extensions;
 
 namespace Extrato_API.Controllers
 {
@@ -21,6 +24,7 @@ namespace Extrato_API.Controllers
         // Logout 
         [HttpPost("logout")]
         [Authorize]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public IActionResult Logout()
         {
             return Ok(new { Sucesso = true, Mensagem = "Logout realizado com sucesso." });
@@ -29,13 +33,11 @@ namespace Extrato_API.Controllers
         // Deletar conta 
         [HttpDelete("deletar")]
         [Authorize]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public IActionResult DeletarConta([FromBody] DeletarContaDTO dto)
         {
-            var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
-                      ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (string.IsNullOrEmpty(sub) || !Guid.TryParse(sub, out var usuarioId))
-                return Unauthorized(new { Sucesso = false, Mensagem = "Usuário não autenticado." });
+            if (!this.TryGetAuthenticatedUserId(out var usuarioId))
+                return this.UserNotAuthenticated();
 
             var usuario = _context.Usuarios.FirstOrDefault(u => u.Id == usuarioId);
 
@@ -45,7 +47,7 @@ namespace Extrato_API.Controllers
             if (!string.Equals(usuario.Email, dto.Email, StringComparison.OrdinalIgnoreCase))
                 return BadRequest(new { Sucesso = false, Mensagem = "E-mail não corresponde à conta autenticada." });
 
-            var senhaValida = BCrypt.Net.BCrypt.Verify(dto.Senha + "poupas_pepper_secret", usuario.SenhaHash);
+            var senhaValida = BCrypt.Net.BCrypt.Verify(dto.Senha + SecurityConstants.PasswordPepper, usuario.SenhaHash);
             if (!senhaValida)
                 return Unauthorized(new { Sucesso = false, Mensagem = "Senha incorreta." });
 
@@ -67,18 +69,16 @@ namespace Extrato_API.Controllers
         // Alterar avatar 
         [HttpPut("avatar")]
         [Authorize]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public IActionResult AlterarAvatar([FromBody] AlterarAvatarDTO dto)
         {
-            var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
-                      ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (string.IsNullOrEmpty(sub) || !Guid.TryParse(sub, out var usuarioId))
-                return Unauthorized(new { Sucesso = false, Mensagem = "Usuário não autenticado." });
+            if (!this.TryGetAuthenticatedUserId(out var usuarioId))
+                return this.UserNotAuthenticated();
 
             var estudante = _context.Estudante.FirstOrDefault(e => e.UsuarioId == usuarioId);
 
             if (estudante == null)
-                return NotFound(new { Sucesso = false, Mensagem = "Perfil do estudante não encontrado." });
+                return this.StudentProfileNotFound(includeSuccessFlag: true);
 
             bool avatarExiste = _context.Avatares.Any(a => a.Id == dto.AvatarId);
             if (!avatarExiste)
@@ -98,6 +98,7 @@ namespace Extrato_API.Controllers
         // GET avatares disponíveis 
         [HttpGet("avatares")]
         [Authorize]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public IActionResult ListarAvatares()
         {
             var avatares = _context.Avatares

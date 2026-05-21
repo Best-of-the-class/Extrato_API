@@ -1,6 +1,6 @@
 namespace Extrato_API.DTOs
 {
-    public class ConquistaDTO
+    public class ConquistaDto
     {
         public int Id { get; set; }
         public string Titulo { get; set; } = string.Empty;
@@ -12,9 +12,9 @@ namespace Extrato_API.DTOs
         public DateTime? ConquistadoEm { get; set; }
     }
 
-    public class ConquistasUsuarioResultadoDTO
+    public class ConquistasUsuarioResultadoDto
     {
-        public List<ConquistaDTO> Conquistas { get; set; } = new();
-        public List<ConquistaDTO> NovasConquistas { get; set; } = new();
+        public List<ConquistaDto> Conquistas { get; set; } = new();
+        public List<ConquistaDto> NovasConquistas { get; set; } = new();
     }
 }

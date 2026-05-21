@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Extrato_API.Data;
 using Extrato_API.Models;
 using Extrato_API.DTOs;
@@ -18,6 +19,7 @@ namespace Extrato_API.Controllers
         }
 
         [HttpGet]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public IActionResult ListarTermos()
         {
             var termos = _context.Dicionarios
@@ -35,6 +37,7 @@ namespace Extrato_API.Controllers
         }
 
         [HttpGet("{id}")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public IActionResult ObterTermo(int id)
         {
             var termo = _context.Dicionarios.FirstOrDefault(d => d.Id == id);
@@ -47,7 +50,8 @@ namespace Extrato_API.Controllers
 
         [HttpPost]
         [Authorize(Roles = "admin")]
-        public IActionResult CriarTermo([FromBody] CriarDicionarioDTO dto)
+    [ProducesResponseType(typeof(object), StatusCodes.Status201Created)]
+    public IActionResult CriarTermo([FromBody] CriarDicionarioDto dto)
         {
             var novoTermo = new Dicionario
             {
@@ -64,7 +68,8 @@ namespace Extrato_API.Controllers
 
         [HttpPut("{id}")]
         [Authorize(Roles = "admin")]
-        public IActionResult AtualizarTermo(int id, [FromBody] AtualizarDicionarioDTO dto)
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    public IActionResult AtualizarTermo(int id, [FromBody] AtualizarDicionarioDto dto)
         {
             var termoExistente = _context.Dicionarios.FirstOrDefault(d => d.Id == id);
 
@@ -81,6 +86,7 @@ namespace Extrato_API.Controllers
 
         [HttpDelete("{id}")]
         [Authorize(Roles = "admin")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public IActionResult DeletarTermo(int id)
         {
             var termo = _context.Dicionarios.FirstOrDefault(d => d.Id == id);

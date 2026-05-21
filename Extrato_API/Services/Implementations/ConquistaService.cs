@@ -13,7 +13,7 @@ namespace Extrato_API.Services.Implementations
             _context = context;
         }
 
-        public ConquistasUsuarioResultadoDTO AvaliarConquistas(Guid usuarioId, Estudante estudante)
+        public ConquistasUsuarioResultadoDto AvaliarConquistas(Guid usuarioId, Estudante estudante)
         {
             var catalogo = _context.Conquistas
                 .OrderBy(c => c.Id)
@@ -73,14 +73,14 @@ namespace Extrato_API.Services.Implementations
                 .Select(conquista => CriarDto(conquista, mapaConquistas))
                 .ToList();
 
-            return new ConquistasUsuarioResultadoDTO
+            return new ConquistasUsuarioResultadoDto
             {
                 Conquistas = todas,
                 NovasConquistas = novas
             };
         }
 
-        public IReadOnlyCollection<ConquistaDTO> ObterConquistas(Estudante estudante)
+        public IReadOnlyCollection<ConquistaDto> ObterConquistas(Estudante estudante)
         {
             var catalogo = _context.Conquistas
                 .OrderBy(c => c.Id)
@@ -88,7 +88,7 @@ namespace Extrato_API.Services.Implementations
 
             var mapaConquistas = _context.ConquistasEstudante
                 .Where(ce => ce.EstudanteId == estudante.Id)
-                .ToList()
+                .AsEnumerable()
                 .GroupBy(ce => ce.ConquistaId)
                 .ToDictionary(grupo => grupo.Key, grupo => grupo.First());
 
@@ -123,11 +123,11 @@ namespace Extrato_API.Services.Implementations
             return false;
         }
 
-        private static ConquistaDTO CriarDto(Conquista conquista, IReadOnlyDictionary<int, ConquistaEstudante> mapaConquistas)
+        private static ConquistaDto CriarDto(Conquista conquista, IReadOnlyDictionary<int, ConquistaEstudante> mapaConquistas)
         {
             mapaConquistas.TryGetValue(conquista.Id, out var conquistaEstudante);
 
-            return new ConquistaDTO
+            return new ConquistaDto
             {
                 Id = conquista.Id,
                 Titulo = conquista.Titulo,

@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Extrato_API.Data;
+using Extrato_API.Extensions;
 using Extrato_API.Services.Implementations;
 
 namespace Extrato_API.Controllers
@@ -22,30 +24,16 @@ namespace Extrato_API.Controllers
         }
 
         [HttpGet]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public IActionResult ObterConquistasUsuario()
         {
-            var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
-                   ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (string.IsNullOrEmpty(sub) || !Guid.TryParse(sub, out var usuarioId))
-            {
-                return Unauthorized(new
-                {
-                    Sucesso = false,
-                    Mensagem = "Usuário não autenticado."
-                });
-            }
+            if (!this.TryGetAuthenticatedUserId(out var usuarioId))
+                return this.UserNotAuthenticated();
 
             var estudante = _context.Estudante.FirstOrDefault(e => e.UsuarioId == usuarioId);
 
             if (estudante == null)
-            {
-                return NotFound(new
-                {
-                    Sucesso = false,
-                    Mensagem = "Perfil do estudante não encontrado."
-                });
-            }
+                return this.StudentProfileNotFound(includeSuccessFlag: true);
 
             var conquistas = _conquistaService.ObterConquistas(estudante);
 

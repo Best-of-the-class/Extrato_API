@@ -2,7 +2,7 @@
 
 namespace Extrato_API.DTOs
 {
-    public class CriarDicionarioDTO
+    public class CriarDicionarioDto
     {
         [Required(ErrorMessage = "O termo é obrigatório.")]
         public string Termo { get; set; } = string.Empty;
@@ -11,7 +11,7 @@ namespace Extrato_API.DTOs
         public string Definicao { get; set; } = string.Empty;
     }
 
-    public class AtualizarDicionarioDTO
+    public class AtualizarDicionarioDto
     {
         [Required(ErrorMessage = "O termo é obrigatório.")]
         public string Termo { get; set; } = string.Empty;

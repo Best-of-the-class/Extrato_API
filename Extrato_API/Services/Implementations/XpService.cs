@@ -13,9 +13,9 @@ namespace Extrato_API.Services.Implementations
             _context = context;
         }
 
-        public ResultadoAtribuicaoXpDTO ProcessarRespostas(Estudante estudante, Licao licao, IReadOnlyCollection<RespostaDTO> respostas)
+        public ResultadoAtribuicaoXpDto ProcessarRespostas(Estudante estudante, Licao licao, IReadOnlyCollection<RespostaDto> respostas)
         {
-            var resultado = new ResultadoAtribuicaoXpDTO();
+            var resultado = new ResultadoAtribuicaoXpDto();
             var atividadesDaLicao = (licao.Atividades ?? new List<Atividade>())
                 .ToDictionary(atividade => atividade.Id);
             var xpPlanejadoPorAtividade = CalcularXpPlanejadoPorAtividade(licao, atividadesDaLicao.Values.ToList());
@@ -60,8 +60,8 @@ namespace Extrato_API.Services.Implementations
                 if (correta && atividade != null && !jaPontuadaAnteriormente)
                     xpPlanejadoPorAtividade.TryGetValue(atividade.Id, out xpGanho);
 
-                if (atividade != null && xpGanho > 0)
-                    atividadesJaPontuadas.Add(atividade.Id);
+                if (xpGanho > 0)
+                    atividadesJaPontuadas.Add(resposta.AtividadeId);
 
                 _context.Tentativas.Add(new Tentativa
                 {
@@ -74,7 +74,7 @@ namespace Extrato_API.Services.Implementations
                 });
 
                 resultado.XpGanhoTotal += xpGanho;
-                resultado.Atividades.Add(new XpAtividadeDTO
+                resultado.Atividades.Add(new XpAtividadeDto
                 {
                     AtividadeId = resposta.AtividadeId,
                     Correta = correta,

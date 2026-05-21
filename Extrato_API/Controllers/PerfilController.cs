@@ -5,6 +5,7 @@ using System.IdentityModel.Tokens.Jwt;
 using Extrato_API.DTOs;
 using Extrato_API.Data;
 using Extrato_API.Models;
+using Extrato_API.Extensions;
 using Extrato_API.Services.Implementations;
 
 namespace Extrato_API.Controllers
@@ -26,17 +27,8 @@ namespace Extrato_API.Controllers
         [HttpGet]
         public IActionResult ObterPerfil()
         {
-            var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
-                   ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (string.IsNullOrEmpty(sub) || !Guid.TryParse(sub, out var usuarioId))
-            {
-                return Unauthorized(new
-                {
-                    Sucesso = false,
-                    Mensagem = "Usuário não autenticado."
-                });
-            }
+            if (!this.TryGetAuthenticatedUserId(out var usuarioId))
+                return this.UserNotAuthenticated();
 
             var usuario = _context.Usuarios.FirstOrDefault(u => u.Id == usuarioId);
 
@@ -52,13 +44,7 @@ namespace Extrato_API.Controllers
             var estudante = _context.Estudante.FirstOrDefault(e => e.UsuarioId == usuarioId);
 
             if (estudante == null)
-            {
-                return NotFound(new
-                {
-                    Sucesso = false,
-                    Mensagem = "Perfil do estudante não encontrado."
-                });
-            }
+                return this.StudentProfileNotFound(includeSuccessFlag: true);
 
             var conquistas = _conquistaService.ObterConquistas(estudante);
 
@@ -68,17 +54,8 @@ namespace Extrato_API.Controllers
         [HttpPut("editar")]
         public IActionResult EditarPerfil([FromBody] EditarPerfilDTO dto)
         {
-            var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
-                   ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (string.IsNullOrEmpty(sub) || !Guid.TryParse(sub, out var usuarioId))
-            {
-                return Unauthorized(new
-                {
-                    Sucesso = false,
-                    Mensagem = "Usuário não autenticado."
-                });
-            }
+            if (!this.TryGetAuthenticatedUserId(out var usuarioId))
+                return this.UserNotAuthenticated();
 
             var usuario = _context.Usuarios.FirstOrDefault(u => u.Id == usuarioId);
 
@@ -113,13 +90,7 @@ namespace Extrato_API.Controllers
                 .FirstOrDefault(e => e.UsuarioId == usuarioId);
 
             if (estudante == null)
-            {
-                return NotFound(new
-                {
-                    Sucesso = false,
-                    Mensagem = "Perfil do estudante não encontrado."
-                });
-            }
+                return this.StudentProfileNotFound(includeSuccessFlag: true);
 
             var novoEmailNormalizado = dto.NovoEmail.Trim().ToLower();
             var novoNomeNormalizado = dto.NovoNome.Trim();
@@ -171,7 +142,7 @@ namespace Extrato_API.Controllers
         private static object CriarRespostaPerfil(
             Usuario usuario,
             Estudante? estudante,
-            IReadOnlyCollection<ConquistaDTO>? conquistas = null,
+            IReadOnlyCollection<ConquistaDto>? conquistas = null,
             string? mensagem = null)
         {
             return new
@@ -186,7 +157,7 @@ namespace Extrato_API.Controllers
                 Pontuacao = estudante?.XpTotal ?? 0,
                 SequenciaDias = estudante?.SequenciaDias ?? 0,
                 QuantVidas = estudante?.QuantVidas ?? 5,
-                Conquistas = conquistas ?? Array.Empty<ConquistaDTO>()
+                Conquistas = conquistas ?? Array.Empty<ConquistaDto>()
             };
         }
     }

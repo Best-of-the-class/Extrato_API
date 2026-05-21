@@ -1,6 +1,6 @@
 namespace Extrato_API.DTOs
 {
-    public class XpAtividadeDTO
+    public class XpAtividadeDto
     {
         public int AtividadeId { get; set; }
         public bool Correta { get; set; }
@@ -8,13 +8,13 @@ namespace Extrato_API.DTOs
         public bool JaPontuadaAnteriormente { get; set; }
     }
 
-    public class ResultadoAtribuicaoXpDTO
+    public class ResultadoAtribuicaoXpDto
     {
         public int Acertos { get; set; }
         public int Erros { get; set; }
         public int XpGanhoTotal { get; set; }
         public int XpTotalUsuario { get; set; }
         public int ExerciciosProcessados { get; set; }
-        public List<XpAtividadeDTO> Atividades { get; set; } = new();
+        public List<XpAtividadeDto> Atividades { get; set; } = new();
     }
 }

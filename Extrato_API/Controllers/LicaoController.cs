@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 using Extrato_API.Data;
 using Extrato_API.Models;
 using Extrato_API.DTOs;
+using Extrato_API.Extensions;
 using Extrato_API.Services.Implementations;
 
 namespace Extrato_API.Controllers
@@ -14,6 +16,8 @@ namespace Extrato_API.Controllers
     [Route("api/[controller]")]
     public class LicaoController : ControllerBase
     {
+        private const string InvalidAnswersMessage = "Uma ou mais respostas não pertencem à lição informada.";
+
         private readonly AppDbContext _context;
         private readonly ConquistaService _conquistaService;
         private readonly XpService _xpService;
@@ -170,6 +174,7 @@ namespace Extrato_API.Controllers
         //requer autenticação e NÃO retorna gabarito
         [HttpGet("detalhes/{titulo}")]
         [Authorize]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public IActionResult BuscarDetalhesAula(string titulo)
         {
             var licao = _context.Licoes
@@ -183,14 +188,14 @@ namespace Extrato_API.Controllers
 
             var questoesFormatadas = licao.Atividades.OrderBy(a => a.Ordem).Select(atividade =>
             {
-                var alts = atividade.Alternativas.OrderBy(alt => alt.Ordem).ToList();
+                var (alternativas, alternativasIds) = ObterAlternativasOrdenadas(atividade);
                 return new
                 {
                     atividadeId = atividade.Id,
                     enunciado = atividade.Enunciado,
                     // gabarito removido — não retorna indiceCorreta
-                    alternativas = alts.Select(alt => alt.Texto).ToList(),
-                    alternativasIds = alts.Select(alt => alt.Id).ToList()
+                    alternativas,
+                    alternativasIds
                 };
             }).ToList<object>();
 
@@ -207,13 +212,11 @@ namespace Extrato_API.Controllers
         //usa usuarioId do JWT, remove EstudanteId do DTO
         [HttpPost("concluir")]
         [Authorize]
-        public IActionResult ConcluirLicao([FromBody] ConcluirLicaoDTO dto)
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        public IActionResult ConcluirLicao([FromBody] ConcluirLicaoDto dto)
         {
-            var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
-                   ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (string.IsNullOrEmpty(sub) || !Guid.TryParse(sub, out var usuarioId))
-                return Unauthorized(new { Sucesso = false, Mensagem = "Usuário não autenticado." });
+            if (!this.TryGetAuthenticatedUserId(out var usuarioId))
+                return this.UserNotAuthenticated();
 
             var licao = _context.Licoes
                 .Include(l => l.Atividades)
@@ -223,12 +226,15 @@ namespace Extrato_API.Controllers
             if (licao == null)
                 return NotFound(new { Mensagem = "Lição não encontrada." });
 
-            var estudante = _context.Estudante.FirstOrDefault(e => e.UsuarioId == usuarioId);
+            var estudante = ObterEstudante(usuarioId);
             if (estudante == null)
-                return NotFound(new { Mensagem = "Perfil do estudante não encontrado." });
+                return this.StudentProfileNotFound();
 
             if (estudante.QuantVidas <= 0)
                 return BadRequest(new { Sucesso = false, Mensagem = "Sem vidas restantes. Aguarde a recarga." });
+
+            if (TemRespostaInvalida(licao, dto.Respostas))
+                return BadRequest(new { Sucesso = false, Mensagem = InvalidAnswersMessage });
 
             var resultadoXp = _xpService.ProcessarRespostas(estudante, licao, dto.Respostas);
 
@@ -248,28 +254,7 @@ namespace Extrato_API.Controllers
                 });
 
                 estudante.LicoesConcluidas += 1;
-
-                var hoje = DateTime.UtcNow.Date;
-                var ontem = hoje.AddDays(-1);
-
-                if (estudante.DataUltimaAtividade.HasValue)
-                {
-                    var ultimaData = estudante.DataUltimaAtividade.Value.Date;
-                    if (ultimaData == ontem)
-                    {
-                        estudante.SequenciaDias += 1;
-                        ganhouSequencia = true;
-                    }
-                    else if (ultimaData < ontem)
-                        estudante.SequenciaDias = 1;
-                }
-                else
-                {
-                    estudante.SequenciaDias = 1;
-                    ganhouSequencia = true;
-                }
-
-                estudante.DataUltimaAtividade = DateTime.UtcNow;
+                ganhouSequencia = AtualizarSequenciaAoConcluir(estudante);
             }
 
             _context.SaveChanges();
@@ -295,17 +280,15 @@ namespace Extrato_API.Controllers
         //endpoint de recarga de vidas com cooldown de 4 horas
         [HttpPost("recarregar-vidas")]
         [Authorize]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public IActionResult RecarregarVidas()
         {
-            var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
-                      ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!this.TryGetAuthenticatedUserId(out var usuarioId))
+                return this.UserNotAuthenticated();
 
-            if (string.IsNullOrEmpty(sub) || !Guid.TryParse(sub, out var usuarioId))
-                return Unauthorized(new { Sucesso = false, Mensagem = "Usuário não autenticado." });
-
-            var estudante = _context.Estudante.FirstOrDefault(e => e.UsuarioId == usuarioId);
+            var estudante = ObterEstudante(usuarioId);
             if (estudante == null)
-                return NotFound(new { Mensagem = "Perfil do estudante não encontrado." });
+                return this.StudentProfileNotFound();
 
             if (estudante.QuantVidas >= 5)
                 return Ok(new { Sucesso = true, Mensagem = "Você já está com as vidas completas.", QuantVidas = estudante.QuantVidas });
@@ -334,6 +317,7 @@ namespace Extrato_API.Controllers
 
         [HttpGet("provao")]
         [Authorize]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public IActionResult ObterProvao([FromQuery] int? quantidade)
         {
             var query = _context.Atividades
@@ -350,14 +334,14 @@ namespace Extrato_API.Controllers
 
             var resultado = atividades.Select(a =>
             {
-                var alts = a.Alternativas.OrderBy(alt => alt.Ordem).ToList();
+                var (alternativas, alternativasIds) = ObterAlternativasOrdenadas(a);
                 return new
                 {
                     atividadeId = a.Id,
                     enunciado = a.Enunciado,
                     dificuldade = a.Dificuldade,
-                    alternativas = alts.Select(alt => alt.Texto).ToList(),
-                    alternativasIds = alts.Select(alt => alt.Id).ToList()
+                    alternativas,
+                    alternativasIds
                 };
             }).ToList();
 
@@ -366,6 +350,7 @@ namespace Extrato_API.Controllers
 
         [HttpGet("pratica")]
         [Authorize]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public IActionResult ObterQuestoesPratica(
             [FromQuery] int? moduloId,
             [FromQuery] int? dificuldade,
@@ -394,7 +379,7 @@ namespace Extrato_API.Controllers
 
             var resultado = atividades.Select(a =>
             {
-                var alts = a.Alternativas.OrderBy(alt => alt.Ordem).ToList();
+                var (alternativas, alternativasIds) = ObterAlternativasOrdenadas(a);
                 return new
                 {
                     atividadeId = a.Id,
@@ -402,8 +387,8 @@ namespace Extrato_API.Controllers
                     dificuldade = a.Dificuldade,
                     modulo = a.Licao?.Modulo?.Titulo,
                     licaoTitulo = a.Licao?.Titulo,
-                    alternativas = alts.Select(alt => alt.Texto).ToList(),
-                    alternativasIds = alts.Select(alt => alt.Id).ToList()
+                    alternativas,
+                    alternativasIds
                 };
             }).ToList();
 
@@ -412,17 +397,15 @@ namespace Extrato_API.Controllers
 
         [HttpGet("vidas")]
         [Authorize]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public IActionResult ObterVidas()
         {
-            var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
-                      ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!this.TryGetAuthenticatedUserId(out var usuarioId))
+                return this.UserNotAuthenticated();
 
-            if (string.IsNullOrEmpty(sub) || !Guid.TryParse(sub, out var usuarioId))
-                return Unauthorized(new { Sucesso = false, Mensagem = "Usuário não autenticado." });
-
-            var estudante = _context.Estudante.FirstOrDefault(e => e.UsuarioId == usuarioId);
+            var estudante = ObterEstudante(usuarioId);
             if (estudante == null)
-                return NotFound(new { Mensagem = "Perfil do estudante não encontrado." });
+                return this.StudentProfileNotFound();
 
             return Ok(new
             {
@@ -435,17 +418,15 @@ namespace Extrato_API.Controllers
 
         [HttpGet("ofensiva")]
         [Authorize]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public IActionResult ObterOfensiva()
         {
-            var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
-                      ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!this.TryGetAuthenticatedUserId(out var usuarioId))
+                return this.UserNotAuthenticated();
 
-            if (string.IsNullOrEmpty(sub) || !Guid.TryParse(sub, out var usuarioId))
-                return Unauthorized(new { Sucesso = false, Mensagem = "Usuário não autenticado." });
-
-            var estudante = _context.Estudante.FirstOrDefault(e => e.UsuarioId == usuarioId);
+            var estudante = ObterEstudante(usuarioId);
             if (estudante == null)
-                return NotFound(new { Mensagem = "Perfil do estudante não encontrado." });
+                return this.StudentProfileNotFound();
 
             bool sequenciaAtiva = false;
             if (estudante.DataUltimaAtividade.HasValue)
@@ -467,6 +448,63 @@ namespace Extrato_API.Controllers
                 SequenciaAtiva = sequenciaAtiva,
                 UltimaAtividade = estudante.DataUltimaAtividade
             });
+        }
+
+        private Estudante? ObterEstudante(Guid usuarioId)
+        {
+            return _context.Estudante.FirstOrDefault(e => e.UsuarioId == usuarioId);
+        }
+
+        private static bool AtualizarSequenciaAoConcluir(Estudante estudante)
+        {
+            var agora = DateTime.UtcNow;
+            var ganhouSequencia = false;
+            var ontem = agora.Date.AddDays(-1);
+
+            if (estudante.DataUltimaAtividade.HasValue)
+            {
+                var ultimaData = estudante.DataUltimaAtividade.Value.Date;
+                if (ultimaData == ontem)
+                {
+                    estudante.SequenciaDias += 1;
+                    ganhouSequencia = true;
+                }
+                else if (ultimaData < ontem)
+                {
+                    estudante.SequenciaDias = 1;
+                }
+            }
+            else
+            {
+                estudante.SequenciaDias = 1;
+                ganhouSequencia = true;
+            }
+
+            estudante.DataUltimaAtividade = agora;
+            return ganhouSequencia;
+        }
+
+        private static bool TemRespostaInvalida(Licao licao, IReadOnlyCollection<RespostaDto> respostas)
+        {
+            var alternativasPorAtividade = (licao.Atividades ?? new List<Atividade>())
+                .ToDictionary(
+                    atividade => atividade.Id,
+                    atividade => atividade.Alternativas.Select(alternativa => alternativa.Id).ToHashSet());
+
+            return respostas.Any(resposta =>
+                !alternativasPorAtividade.TryGetValue(resposta.AtividadeId, out var alternativasValidas) ||
+                (resposta.AlternativaEscolhidaId.HasValue && !alternativasValidas.Contains(resposta.AlternativaEscolhidaId.Value)));
+        }
+
+        private static (List<string> Alternativas, List<int> AlternativasIds) ObterAlternativasOrdenadas(Atividade atividade)
+        {
+            var alternativasOrdenadas = atividade.Alternativas
+                .OrderBy(alternativa => alternativa.Ordem)
+                .ToList();
+
+            return (
+                alternativasOrdenadas.Select(alternativa => alternativa.Texto).ToList(),
+                alternativasOrdenadas.Select(alternativa => alternativa.Id).ToList());
         }
     }
 }
