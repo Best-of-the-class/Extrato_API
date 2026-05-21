@@ -25,12 +25,12 @@ namespace Extrato_API.Controllers
             _xpService = xpService;
         }
 
-        // ADMIN: Criar aula completa
+        //protegido com [Authorize(Roles = "admin")]
         [HttpPost("criar")]
+        [Authorize(Roles = "admin")]
         public IActionResult CriarAulaCompleta([FromBody] CriarAulaDTO dto)
         {
             var modulo = _context.Modulos.FirstOrDefault(m => m.Nivel == dto.Dificuldade);
-
             if (modulo == null)
             {
                 modulo = new Modulo { Titulo = $"Módulo Nível {dto.Dificuldade}", Nivel = dto.Dificuldade };
@@ -81,8 +81,8 @@ namespace Extrato_API.Controllers
             return Ok(new { Sucesso = true, Mensagem = "Aula criada com sucesso no Poupas!", LicaoId = novaLicao.Id });
         }
 
-        // ADMIN: Editar aula 
         [HttpPut("editar/{tituloAntigo}")]
+        [Authorize(Roles = "admin")]
         public IActionResult EditarAula(string tituloAntigo, [FromBody] CriarAulaDTO dto)
         {
             var licao = _context.Licoes
@@ -134,8 +134,8 @@ namespace Extrato_API.Controllers
             return Ok(new { Sucesso = true, Mensagem = "Aula editada com sucesso!" });
         }
 
-        // ADMIN: Deletar aula
         [HttpDelete("deletar/{titulo}")]
+        [Authorize(Roles = "admin")]
         public IActionResult DeletarAula(string titulo)
         {
             var licao = _context.Licoes
@@ -152,7 +152,6 @@ namespace Extrato_API.Controllers
             return Ok(new { Sucesso = true, Mensagem = "Aula deletada com sucesso!" });
         }
 
-        // Listar trilha
         [HttpGet("listar")]
         public IActionResult ListarAulas()
         {
@@ -168,8 +167,9 @@ namespace Extrato_API.Controllers
             return Ok(trilha);
         }
 
-        // Detalhes de uma aula 
+        //requer autenticação e NÃO retorna gabarito
         [HttpGet("detalhes/{titulo}")]
+        [Authorize]
         public IActionResult BuscarDetalhesAula(string titulo)
         {
             var licao = _context.Licoes
@@ -188,7 +188,7 @@ namespace Extrato_API.Controllers
                 {
                     atividadeId = atividade.Id,
                     enunciado = atividade.Enunciado,
-                    indiceCorreta = alts.FindIndex(alt => alt.Correta == true),
+                    // gabarito removido — não retorna indiceCorreta
                     alternativas = alts.Select(alt => alt.Texto).ToList(),
                     alternativasIds = alts.Select(alt => alt.Id).ToList()
                 };
@@ -204,7 +204,7 @@ namespace Extrato_API.Controllers
             });
         }
 
-        //Concluir lição
+        //usa usuarioId do JWT, remove EstudanteId do DTO
         [HttpPost("concluir")]
         [Authorize]
         public IActionResult ConcluirLicao([FromBody] ConcluirLicaoDTO dto)
@@ -214,15 +214,6 @@ namespace Extrato_API.Controllers
 
             if (string.IsNullOrEmpty(sub) || !Guid.TryParse(sub, out var usuarioId))
                 return Unauthorized(new { Sucesso = false, Mensagem = "Usuário não autenticado." });
-
-            if (dto.EstudanteId != Guid.Empty && dto.EstudanteId != usuarioId)
-            {
-                return StatusCode(403, new
-                {
-                    Sucesso = false,
-                    Mensagem = "Não é permitido concluir lições para outro usuário."
-                });
-            }
 
             var licao = _context.Licoes
                 .Include(l => l.Atividades)
@@ -241,7 +232,6 @@ namespace Extrato_API.Controllers
 
             var resultadoXp = _xpService.ProcessarRespostas(estudante, licao, dto.Respostas);
 
-            // Remove 1 vida se errou pelo menos 1 questão
             if (resultadoXp.Erros > 0)
                 estudante.QuantVidas = Math.Max(0, estudante.QuantVidas - 1);
 
@@ -259,7 +249,6 @@ namespace Extrato_API.Controllers
 
                 estudante.LicoesConcluidas += 1;
 
-                // Ofensiva (streak) 
                 var hoje = DateTime.UtcNow.Date;
                 var ontem = hoje.AddDays(-1);
 
@@ -272,11 +261,7 @@ namespace Extrato_API.Controllers
                         ganhouSequencia = true;
                     }
                     else if (ultimaData < ontem)
-                    {
-                        // Mais de 1 dia sem jogar: reseta
                         estudante.SequenciaDias = 1;
-                    }
-                    // Se ultimaData == hoje: já jogou hoje, não altera
                 }
                 else
                 {
@@ -290,7 +275,6 @@ namespace Extrato_API.Controllers
             _context.SaveChanges();
 
             var resultadoConquistas = _conquistaService.AvaliarConquistas(usuarioId, estudante);
-
             if (resultadoConquistas.NovasConquistas.Any())
                 _context.SaveChanges();
 
@@ -308,7 +292,30 @@ namespace Extrato_API.Controllers
             });
         }
 
-        // Sprint 3 — ID 8: Provão 
+        //endpoint de recarga de vidas
+        [HttpPost("recarregar-vidas")]
+        [Authorize]
+        public IActionResult RecarregarVidas()
+        {
+            var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                      ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(sub) || !Guid.TryParse(sub, out var usuarioId))
+                return Unauthorized(new { Sucesso = false, Mensagem = "Usuário não autenticado." });
+
+            var estudante = _context.Estudante.FirstOrDefault(e => e.UsuarioId == usuarioId);
+            if (estudante == null)
+                return NotFound(new { Mensagem = "Perfil do estudante não encontrado." });
+
+            if (estudante.QuantVidas >= 5)
+                return Ok(new { Sucesso = true, Mensagem = "Você já está com as vidas completas.", QuantVidas = estudante.QuantVidas });
+
+            estudante.QuantVidas = 5;
+            _context.SaveChanges();
+
+            return Ok(new { Sucesso = true, Mensagem = "Vidas recarregadas!", QuantVidas = estudante.QuantVidas });
+        }
+
         [HttpGet("provao")]
         [Authorize]
         public IActionResult ObterProvao([FromQuery] int? quantidade)
@@ -341,7 +348,6 @@ namespace Extrato_API.Controllers
             return Ok(new { Sucesso = true, TotalQuestoes = resultado.Count, Questoes = resultado });
         }
 
-        //Sprint 4 — ID 2: Prática
         [HttpGet("pratica")]
         [Authorize]
         public IActionResult ObterQuestoesPratica(
@@ -363,7 +369,7 @@ namespace Extrato_API.Controllers
                 query = query.Where(a => a.Dificuldade == dificuldade.Value);
 
             var atividades = query
-                .OrderBy(a => Guid.NewGuid()) // ordem aleatória
+                .OrderBy(a => Guid.NewGuid())
                 .Take(Math.Clamp(quantidade, 1, 50))
                 .ToList();
 
@@ -388,7 +394,6 @@ namespace Extrato_API.Controllers
             return Ok(new { Sucesso = true, TotalQuestoes = resultado.Count, Questoes = resultado });
         }
 
-        //ID 9: Vidas 
         [HttpGet("vidas")]
         [Authorize]
         public IActionResult ObterVidas()
@@ -412,7 +417,6 @@ namespace Extrato_API.Controllers
             });
         }
 
-        // Sprint 4 Ofensiva
         [HttpGet("ofensiva")]
         [Authorize]
         public IActionResult ObterOfensiva()
@@ -433,7 +437,6 @@ namespace Extrato_API.Controllers
                 var dias = (DateTime.UtcNow.Date - estudante.DataUltimaAtividade.Value.Date).TotalDays;
                 sequenciaAtiva = dias <= 1;
 
-                // Passou mais de 1 dia sem jogar: reseta
                 if (dias > 1)
                 {
                     estudante.SequenciaDias = 0;

@@ -69,7 +69,7 @@ namespace Extrato_API.Controllers
             bool senhaValida = BCrypt.Net.BCrypt.Verify(senhaLimpa + "poupas_pepper_secret", usuario.SenhaHash);
 
             if (!senhaValida)
-            { 
+            {
                 return Unauthorized(new { Sucesso = false, Mensagem = "Email ou senha incorretos." });
             }
 
@@ -86,6 +86,7 @@ namespace Extrato_API.Controllers
             });
         }
 
+        //usando BCrypt igual ao login normal
         [HttpPost("login-admin")]
         public IActionResult LoginAdmin([FromBody] LoginUsuarioDTO dto)
         {
@@ -94,7 +95,10 @@ namespace Extrato_API.Controllers
 
             var usuario = _context.Usuarios.FirstOrDefault(u => u.Email.ToLower() == emailLimpo);
 
-            if (usuario == null || usuario.SenhaHash != senhaLimpa)
+            if (usuario == null)
+                return Unauthorized(new { Sucesso = false, Mensagem = "Credenciais inválidas." });
+
+            if (!BCrypt.Net.BCrypt.Verify(senhaLimpa + "poupas_pepper_secret", usuario.SenhaHash))
                 return Unauthorized(new { Sucesso = false, Mensagem = "Credenciais inválidas." });
 
             if (usuario.TipoUsuario.ToLower() != "admin")
@@ -110,14 +114,17 @@ namespace Extrato_API.Controllers
             });
         }
 
+        //normaliza e-mail igual ao login
         [HttpPost("recuperar-senha")]
         public IActionResult SolicitarReset([FromBody] SolicitarResetSenhaDTO dto)
         {
-            var usuario = _context.Usuarios.FirstOrDefault(u => u.Email == dto.Email);
+            var emailLimpo = dto.Email.Trim().ToLower();
+            var usuario = _context.Usuarios.FirstOrDefault(u => u.Email == emailLimpo);
+
             if (usuario == null)
                 return Ok(new { Sucesso = true, Mensagem = "Se o e-mail existir, você receberá o código." });
 
-            var resetAntigo = _context.ResetSenhas.FirstOrDefault(r => r.Email == dto.Email);
+            var resetAntigo = _context.ResetSenhas.FirstOrDefault(r => r.Email == emailLimpo);
             if (resetAntigo != null)
                 _context.ResetSenhas.Remove(resetAntigo);
 
@@ -125,7 +132,7 @@ namespace Extrato_API.Controllers
 
             _context.ResetSenhas.Add(new ResetSenha
             {
-                Email = dto.Email,
+                Email = emailLimpo,
                 Codigo = codigo,
                 Expiracao = DateTime.UtcNow.AddMinutes(15)
             });
@@ -134,7 +141,7 @@ namespace Extrato_API.Controllers
             try { EnviarEmailCodigo(usuario.Email, usuario.NomeUsuario, codigo); }
             catch (Exception ex)
             {
-                var resetCriado = _context.ResetSenhas.FirstOrDefault(r => r.Email == dto.Email);
+                var resetCriado = _context.ResetSenhas.FirstOrDefault(r => r.Email == emailLimpo);
                 if (resetCriado != null) _context.ResetSenhas.Remove(resetCriado);
                 _context.SaveChanges();
                 return StatusCode(500, new { Sucesso = false, Mensagem = "Erro ao enviar e-mail.", Detalhe = ex.Message });
@@ -143,10 +150,12 @@ namespace Extrato_API.Controllers
             return Ok(new { Sucesso = true, Mensagem = "Se o e-mail existir, você receberá o código." });
         }
 
+        //normaliza e-mail
         [HttpPost("verificar-codigo")]
         public IActionResult VerificarCodigo([FromBody] VerificarCodigoDTO dto)
         {
-            var reset = _context.ResetSenhas.FirstOrDefault(r => r.Email == dto.Email);
+            var emailLimpo = dto.Email.Trim().ToLower();
+            var reset = _context.ResetSenhas.FirstOrDefault(r => r.Email == emailLimpo);
 
             if (reset == null)
                 return BadRequest(new { Sucesso = false, Mensagem = "Código inválido ou expirado." });
@@ -164,10 +173,12 @@ namespace Extrato_API.Controllers
             return Ok(new { Sucesso = true, Mensagem = "Código válido." });
         }
 
+        //normaliza e-mail
         [HttpPost("redefinir-senha")]
         public IActionResult RedefinirSenha([FromBody] RedefinirSenhaDTO dto)
         {
-            var reset = _context.ResetSenhas.FirstOrDefault(r => r.Email == dto.Email);
+            var emailLimpo = dto.Email.Trim().ToLower();
+            var reset = _context.ResetSenhas.FirstOrDefault(r => r.Email == emailLimpo);
 
             if (reset == null)
                 return BadRequest(new { Sucesso = false, Mensagem = "Código inválido ou expirado." });
@@ -182,7 +193,7 @@ namespace Extrato_API.Controllers
             if (reset.Codigo != dto.Codigo)
                 return BadRequest(new { Sucesso = false, Mensagem = "Código incorreto." });
 
-            var usuario = _context.Usuarios.FirstOrDefault(u => u.Email == dto.Email);
+            var usuario = _context.Usuarios.FirstOrDefault(u => u.Email == emailLimpo);
             if (usuario == null)
                 return NotFound(new { Sucesso = false, Mensagem = "Usuário não encontrado." });
 

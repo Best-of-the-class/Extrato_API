@@ -81,8 +81,9 @@ if (string.IsNullOrWhiteSpace(connectionString))
     throw new InvalidOperationException("Nenhuma connection string configurada. Use 'DefaultConnection' ou 'PostgresConnection'.");
 }
 
+// Corrigido: usa connectionString já resolvida acima
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("PostgresConnection")));
+    options.UseNpgsql(connectionString));
 
 var app = builder.Build();
 

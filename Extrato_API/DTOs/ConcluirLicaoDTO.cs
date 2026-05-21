@@ -1,14 +1,9 @@
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace Extrato_API.DTOs
-{
+{ //remove EstudanteId que vem do JWT
     public class ConcluirLicaoDTO
     {
-        [Required]
-        public Guid EstudanteId { get; set; }
-
         [Required]
         public int LicaoId { get; set; }
 
