@@ -66,12 +66,17 @@ namespace Extrato_API.Services.Implementations
             else
                 resultado.Erros++;
 
-            var jaPontuadaAnteriormente = atividade != null && atividadesJaPontuadas.Contains(atividade.Id);
+            bool jaPontuadaAnteriormente = false;
             int xpGanho = 0;
-            if (correta && atividade != null && !jaPontuadaAnteriormente)
+            if (atividade != null)
             {
-                xpGanho = xpPlanejadoPorAtividade[atividade.Id];
-                atividadesJaPontuadas.Add(atividade.Id);
+                jaPontuadaAnteriormente = atividadesJaPontuadas.Contains(atividade.Id);
+                // Só pontua se correta, não pontuada antes e chave existe no dicionário
+                if (correta && !jaPontuadaAnteriormente && xpPlanejadoPorAtividade.ContainsKey(atividade.Id))
+                {
+                    xpGanho = xpPlanejadoPorAtividade[atividade.Id];
+                    atividadesJaPontuadas.Add(atividade.Id);
+                }
             }
 
             _context.Tentativas.Add(new Tentativa
@@ -98,7 +103,7 @@ namespace Extrato_API.Services.Implementations
         {
             var distribuicao = new Dictionary<int, int>();
 
-            if (atividades.Count == 0)
+            if (atividades == null || atividades.Count == 0)
                 return distribuicao;
 
             var xpTotalDaLicao = ObterXpTotalDaLicao(licao, atividades.Count);
@@ -160,9 +165,10 @@ namespace Extrato_API.Services.Implementations
 
         private static int ObterXpTotalDaLicao(Licao licao, int quantidadeAtividades)
         {
+            if (licao == null)
+                return 10;
             if (licao.RecompensaXp > 0)
                 return licao.RecompensaXp;
-
             return Math.Max(10, quantidadeAtividades * 10);
         }
 
