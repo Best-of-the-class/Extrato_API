@@ -3,6 +3,7 @@ using System;
 using Extrato_API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Extrato_API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260518062529_RemoveEstatisticasUsuario")]
+    partial class RemoveEstatisticasUsuario
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -109,104 +112,6 @@ namespace Extrato_API.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("tb_avatar", (string)null);
-                });
-
-            modelBuilder.Entity("Extrato_API.Models.Conquista", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id_conquista");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("BackgroundCor")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("background_cor");
-
-                    b.Property<string>("Descricao")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("descricao");
-
-                    b.Property<string>("Icone")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("icone");
-
-                    b.Property<string>("TipoDesbloqueio")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("tipo_desbloqueio");
-
-                    b.Property<string>("Titulo")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("titulo");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("tb_conquista", (string)null);
-                });
-
-            modelBuilder.Entity("Extrato_API.Models.ConquistaEstudante", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id_conquista_estudante");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("ConquistaId")
-                        .HasColumnType("integer")
-                        .HasColumnName("conquista_id");
-
-                    b.Property<DateTime>("ConquistadoEm")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("conquistado_em");
-
-                    b.Property<Guid>("EstudanteId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("estudante_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ConquistaId");
-
-                    b.HasIndex("EstudanteId", "ConquistaId")
-                        .IsUnique();
-
-                    b.ToTable("tb_conquista_estudante", (string)null);
-                });
-
-            modelBuilder.Entity("Extrato_API.Models.Dicionario", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id_dicionario");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CriadoEm")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("criado_em");
-
-                    b.Property<string>("Definicao")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("definicao");
-
-                    b.Property<string>("Termo")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("termo");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("tb_dicionario", (string)null);
                 });
 
             modelBuilder.Entity("Extrato_API.Models.Estudante", b =>
@@ -476,21 +381,6 @@ namespace Extrato_API.Migrations
                         .IsRequired();
 
                     b.Navigation("Licao");
-                });
-
-            modelBuilder.Entity("Extrato_API.Models.ConquistaEstudante", b =>
-                {
-                    b.HasOne("Extrato_API.Models.Conquista", null)
-                        .WithMany()
-                        .HasForeignKey("ConquistaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Extrato_API.Models.Estudante", null)
-                        .WithMany()
-                        .HasForeignKey("EstudanteId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("Extrato_API.Models.Licao", b =>

@@ -3,6 +3,7 @@ using System;
 using Extrato_API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Extrato_API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260518065236_SincronizarConquistasExistentes")]
+    partial class SincronizarConquistasExistentes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -161,7 +164,7 @@ namespace Extrato_API.Migrations
 
                     b.Property<int>("ConquistaId")
                         .HasColumnType("integer")
-                        .HasColumnName("conquista_id");
+                        .HasColumnName("id_conquista");
 
                     b.Property<DateTime>("ConquistadoEm")
                         .HasColumnType("timestamp with time zone")
@@ -179,34 +182,6 @@ namespace Extrato_API.Migrations
                         .IsUnique();
 
                     b.ToTable("tb_conquista_estudante", (string)null);
-                });
-
-            modelBuilder.Entity("Extrato_API.Models.Dicionario", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id_dicionario");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CriadoEm")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("criado_em");
-
-                    b.Property<string>("Definicao")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("definicao");
-
-                    b.Property<string>("Termo")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("termo");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("tb_dicionario", (string)null);
                 });
 
             modelBuilder.Entity("Extrato_API.Models.Estudante", b =>

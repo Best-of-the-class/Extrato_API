@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Extrato_API.DTOs
 {
@@ -15,11 +16,9 @@ namespace Extrato_API.DTOs
 
     // ID 21 — Alterar avatar
     public class AlterarAvatarDTO
-    {
-        [Required(ErrorMessage = "O e-mail é obrigatório.")]
-        public string Email { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "O avatarId é obrigatório.")]
+    { //retirei o e-mail que antes era obrigatório
+        [JsonRequired]
+        [Range(1, int.MaxValue, ErrorMessage = "O avatarId é obrigatório.")]
         public int AvatarId { get; set; }
     }
 }
