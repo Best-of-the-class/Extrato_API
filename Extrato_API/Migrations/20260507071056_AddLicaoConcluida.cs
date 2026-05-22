@@ -12,62 +12,7 @@ namespace Extrato_API.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropPrimaryKey(
-                name: "PK_Usuarios",
-                table: "Usuarios");
-
-            migrationBuilder.DropColumn(
-                name: "AvatarId",
-                table: "Usuarios");
-
-            migrationBuilder.DropColumn(
-                name: "CodigoResetExpiracao",
-                table: "Usuarios");
-
-            migrationBuilder.DropColumn(
-                name: "CodigoResetSenha",
-                table: "Usuarios");
-
-            migrationBuilder.RenameTable(
-                name: "Usuarios",
-                newName: "tb_usuario");
-
-            migrationBuilder.RenameColumn(
-                name: "Email",
-                table: "tb_usuario",
-                newName: "email");
-
-            migrationBuilder.RenameColumn(
-                name: "SenhaHash",
-                table: "tb_usuario",
-                newName: "senha");
-
-            migrationBuilder.RenameColumn(
-                name: "NomeUsuario",
-                table: "tb_usuario",
-                newName: "nome");
-
-            migrationBuilder.RenameColumn(
-                name: "DataCadastro",
-                table: "tb_usuario",
-                newName: "criado_em");
-
-            migrationBuilder.RenameColumn(
-                name: "Id",
-                table: "tb_usuario",
-                newName: "id_usuario");
-
-            migrationBuilder.AddColumn<string>(
-                name: "tipo_usuario",
-                table: "tb_usuario",
-                type: "text",
-                nullable: false,
-                defaultValue: "");
-
-            migrationBuilder.AddPrimaryKey(
-                name: "PK_tb_usuario",
-                table: "tb_usuario",
-                column: "id_usuario");
+            RenomearTabelaUsuariosUp(migrationBuilder);
 
             migrationBuilder.CreateTable(
                 name: "tb_licao_concluida",
@@ -243,65 +188,106 @@ namespace Extrato_API.Migrations
             migrationBuilder.DropTable(
                 name: "tb_modulo");
 
+            RenomearTabelaUsuariosDown(migrationBuilder);
+        }
+
+        // Bloco de renomeação/adaptação da tabela Usuarios para Up
+        private void RenomearTabelaUsuariosUp(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropPrimaryKey(
+                name: "PK_Usuarios",
+                table: "Usuarios");
+            migrationBuilder.DropColumn(
+                name: "AvatarId",
+                table: "Usuarios");
+            migrationBuilder.DropColumn(
+                name: "CodigoResetExpiracao",
+                table: "Usuarios");
+            migrationBuilder.DropColumn(
+                name: "CodigoResetSenha",
+                table: "Usuarios");
+            migrationBuilder.RenameTable(
+                name: "Usuarios",
+                newName: "tb_usuario");
+            migrationBuilder.RenameColumn(
+                name: "Email",
+                table: "tb_usuario",
+                newName: "email");
+            migrationBuilder.RenameColumn(
+                name: "SenhaHash",
+                table: "tb_usuario",
+                newName: "senha");
+            migrationBuilder.RenameColumn(
+                name: "NomeUsuario",
+                table: "tb_usuario",
+                newName: "nome");
+            migrationBuilder.RenameColumn(
+                name: "DataCadastro",
+                table: "tb_usuario",
+                newName: "criado_em");
+            migrationBuilder.RenameColumn(
+                name: "Id",
+                table: "tb_usuario",
+                newName: "id_usuario");
+            migrationBuilder.AddColumn<string>(
+                name: "tipo_usuario",
+                table: "tb_usuario",
+                type: "text",
+                nullable: false,
+                defaultValue: "");
+            migrationBuilder.AddPrimaryKey(
+                name: "PK_tb_usuario",
+                table: "tb_usuario",
+                column: "id_usuario");
+        }
+
+        // Bloco de renomeação/adaptação da tabela Usuarios para Down
+        private void RenomearTabelaUsuariosDown(MigrationBuilder migrationBuilder)
+        {
             migrationBuilder.DropPrimaryKey(
                 name: "PK_tb_usuario",
                 table: "tb_usuario");
-
             migrationBuilder.DropColumn(
                 name: "tipo_usuario",
                 table: "tb_usuario");
-
             migrationBuilder.RenameTable(
                 name: "tb_usuario",
                 newName: "Usuarios");
-
             migrationBuilder.RenameColumn(
                 name: "email",
                 table: "Usuarios",
                 newName: "Email");
-
             migrationBuilder.RenameColumn(
                 name: "senha",
                 table: "Usuarios",
                 newName: "SenhaHash");
-
             migrationBuilder.RenameColumn(
                 name: "nome",
                 table: "Usuarios",
                 newName: "NomeUsuario");
-
             migrationBuilder.RenameColumn(
                 name: "criado_em",
                 table: "Usuarios",
                 newName: "DataCadastro");
-
             migrationBuilder.RenameColumn(
                 name: "id_usuario",
                 table: "Usuarios",
                 newName: "Id");
-
             migrationBuilder.AddColumn<int>(
                 name: "AvatarId",
                 table: "Usuarios",
                 type: "integer",
                 nullable: true);
-
             migrationBuilder.AddColumn<DateTime>(
                 name: "CodigoResetExpiracao",
                 table: "Usuarios",
                 type: "timestamp with time zone",
                 nullable: true);
-
             migrationBuilder.AddColumn<string>(
                 name: "CodigoResetSenha",
                 table: "Usuarios",
                 type: "text",
                 nullable: true);
-
-            migrationBuilder.AddPrimaryKey(
-                name: "PK_Usuarios",
-                table: "Usuarios",
-                column: "Id");
         }
     }
 }
