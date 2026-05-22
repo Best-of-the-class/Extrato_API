@@ -16,16 +16,26 @@ namespace Extrato_API.Services.Implementations
         public ResultadoAtribuicaoXpDto ProcessarRespostas(Estudante estudante, Licao licao, IReadOnlyCollection<RespostaDto> respostas)
         {
             var resultado = new ResultadoAtribuicaoXpDto();
-            var atividadesDaLicao = (licao.Atividades ?? new List<Atividade>())
-                .ToDictionary(atividade => atividade.Id);
+            var atividadesDaLicao = (licao.Atividades ?? new List<Atividade>()).ToDictionary(atividade => atividade.Id);
             var xpPlanejadoPorAtividade = CalcularXpPlanejadoPorAtividade(licao, atividadesDaLicao.Values.ToList());
+            var atividadesRespondidas = respostas.Select(resposta => resposta.AtividadeId).Distinct().ToList();
+            var atividadesJaPontuadas = ObterAtividadesJaPontuadas(estudante, atividadesRespondidas);
 
-            var atividadesRespondidas = respostas
-                .Select(resposta => resposta.AtividadeId)
-                .Distinct()
-                .ToList();
+            foreach (var resposta in respostas)
+            {
+                ProcessarResposta(resposta, estudante, atividadesDaLicao, xpPlanejadoPorAtividade, atividadesJaPontuadas, resultado);
+            }
 
-            var atividadesJaPontuadas = _context.Tentativas
+            resultado.ExerciciosProcessados = resultado.Acertos + resultado.Erros;
+            estudante.XpTotal += resultado.XpGanhoTotal;
+            estudante.ExerciciosResolvidos += resultado.ExerciciosProcessados;
+            resultado.XpTotalUsuario = estudante.XpTotal;
+            return resultado;
+        }
+
+        private HashSet<int> ObterAtividadesJaPontuadas(Estudante estudante, List<int> atividadesRespondidas)
+        {
+            return _context.Tentativas
                 .Where(tentativa =>
                     (tentativa.EstudanteId == estudante.Id || tentativa.EstudanteId == estudante.UsuarioId) &&
                     atividadesRespondidas.Contains(tentativa.AtividadeId) &&
@@ -34,68 +44,54 @@ namespace Extrato_API.Services.Implementations
                 .Select(tentativa => tentativa.AtividadeId)
                 .Distinct()
                 .ToHashSet();
+        }
 
-            foreach (var resposta in respostas)
+        private void ProcessarResposta(
+            RespostaDto resposta,
+            Estudante estudante,
+            Dictionary<int, Atividade> atividadesDaLicao,
+            Dictionary<int, int> xpPlanejadoPorAtividade,
+            HashSet<int> atividadesJaPontuadas,
+            ResultadoAtribuicaoXpDto resultado)
+        {
+            atividadesDaLicao.TryGetValue(resposta.AtividadeId, out var atividade);
+            var correta = false;
+            if (atividade != null)
             {
-                atividadesDaLicao.TryGetValue(resposta.AtividadeId, out var atividade);
+                var alternativaEscolhida = atividade.Alternativas.FirstOrDefault(alternativa => alternativa.Id == resposta.AlternativaEscolhidaId);
+                correta = alternativaEscolhida?.Correta == true;
+            }
+            if (correta)
+                resultado.Acertos++;
+            else
+                resultado.Erros++;
 
-                var correta = false;
-
-                if (atividade != null)
-                {
-                    var alternativaEscolhida = atividade.Alternativas
-                        .FirstOrDefault(alternativa => alternativa.Id == resposta.AlternativaEscolhidaId);
-
-                    correta = alternativaEscolhida?.Correta == true;
-                }
-
-                if (correta)
-                    resultado.Acertos++;
-                else
-                    resultado.Erros++;
-
-                // Verifica se a atividade já foi pontuada anteriormente para evitar duplicidade de XP
-                bool jaPontuadaAnteriormente = atividade != null && atividadesJaPontuadas.Contains(atividade.Id);
-                // Só pontua se a resposta estiver correta, a atividade existir e não tiver sido pontuada antes
-                bool devePontuar = correta && atividade != null && !jaPontuadaAnteriormente;
-                int xpGanho = 0;
-
-                // SonarCloud: esta condição depende de três variáveis dinâmicas, não é sempre verdadeira
-                if (devePontuar)
-                {
-                    if (atividade != null && xpPlanejadoPorAtividade.ContainsKey(atividade.Id))
-                    {
-                        xpGanho = xpPlanejadoPorAtividade[atividade.Id];
-                        atividadesJaPontuadas.Add(atividade.Id);
-                    }
-                }
-
-                _context.Tentativas.Add(new Tentativa
-                {
-                    EstudanteId = estudante.Id,
-                    AtividadeId = resposta.AtividadeId,
-                    AlternativaEscolhidaId = resposta.AlternativaEscolhidaId,
-                    Correta = correta,
-                    XpGanho = xpGanho,
-                    TentadoEm = DateTime.UtcNow
-                });
-
-                resultado.XpGanhoTotal += xpGanho;
-                resultado.Atividades.Add(new XpAtividadeDto
-                {
-                    AtividadeId = resposta.AtividadeId,
-                    Correta = correta,
-                    XpGanho = xpGanho,
-                    JaPontuadaAnteriormente = jaPontuadaAnteriormente
-                });
+            var jaPontuadaAnteriormente = atividade != null && atividadesJaPontuadas.Contains(atividade.Id);
+            int xpGanho = 0;
+            if (correta && atividade != null && !jaPontuadaAnteriormente)
+            {
+                xpGanho = xpPlanejadoPorAtividade[atividade.Id];
+                atividadesJaPontuadas.Add(atividade.Id);
             }
 
-            resultado.ExerciciosProcessados = resultado.Acertos + resultado.Erros;
-            estudante.XpTotal += resultado.XpGanhoTotal;
-            estudante.ExerciciosResolvidos += resultado.ExerciciosProcessados;
-            resultado.XpTotalUsuario = estudante.XpTotal;
+            _context.Tentativas.Add(new Tentativa
+            {
+                EstudanteId = estudante.Id,
+                AtividadeId = resposta.AtividadeId,
+                AlternativaEscolhidaId = resposta.AlternativaEscolhidaId,
+                Correta = correta,
+                XpGanho = xpGanho,
+                TentadoEm = DateTime.UtcNow
+            });
 
-            return resultado;
+            resultado.XpGanhoTotal += xpGanho;
+            resultado.Atividades.Add(new XpAtividadeDto
+            {
+                AtividadeId = resposta.AtividadeId,
+                Correta = correta,
+                XpGanho = xpGanho,
+                JaPontuadaAnteriormente = jaPontuadaAnteriormente
+            });
         }
 
         private static Dictionary<int, int> CalcularXpPlanejadoPorAtividade(Licao licao, IReadOnlyCollection<Atividade> atividades)
