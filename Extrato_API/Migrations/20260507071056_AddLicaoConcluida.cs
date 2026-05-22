@@ -192,7 +192,7 @@ namespace Extrato_API.Migrations
         }
 
         // Bloco de renomeação/adaptação da tabela Usuarios para Up
-        private void RenomearTabelaUsuariosUp(MigrationBuilder migrationBuilder)
+        private static void RenomearTabelaUsuariosUp(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropPrimaryKey(
                 name: "PK_Usuarios",
@@ -242,7 +242,7 @@ namespace Extrato_API.Migrations
         }
 
         // Bloco de renomeação/adaptação da tabela Usuarios para Down
-        private void RenomearTabelaUsuariosDown(MigrationBuilder migrationBuilder)
+        private static void RenomearTabelaUsuariosDown(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropPrimaryKey(
                 name: "PK_tb_usuario",
